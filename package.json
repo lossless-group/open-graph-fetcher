@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-plugin-starter",
-	"version": "0.0.1.0",
-	"description": "This is starter code for Obsidian plugins (https://obsidian.md)",
+	"name": "open-graph-fetcher-obsidian-plugin",
+	"version": "0.0.0.1",
+	"description": "A plugin for Obsidian that allows you to fetch Open Graph data from a URL using OpenGraph.io.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -11,11 +11,11 @@
 	"keywords": [
 		"Obsidian",
 		"Plugin",
-		"Footnotes",
-		"Citations"
+		"Open Graph",
+		"Metadata"
 	],
 	"author": "The Lossless Group",
-	"license": "MIT",
+	"license": "The Unlicense",
 	"devDependencies": {
 		"@types/node": "^24.0.12",
 		"@typescript-eslint/eslint-plugin": "8.36.0",

@@ -1,6 +1,6 @@
-# Obsidian Plugin Starter
+# Open Graph Fetcher Obsidian Plugin
 
-This is barebones starter code to build an Obsidian plugin using the `pnpm` package manager.  It is a clone of the official Obsidian plugin starter code, but with updated libraries, packages, dependencies. 
+An Obsidian plugin that allows you to fetch Open Graph data from a URL using OpenGraph.io.
 
 ## Getting Started
 
