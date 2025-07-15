@@ -29,7 +29,7 @@ const external = [
 
 // First, build the CSS file
 await esbuild.build({
-  entryPoints: ['src/styles/citations.css'],
+  entryPoints: ['src/styles/open-graph-fetcher.css'],
   bundle: true,
   minify: isProduction,
   outfile: 'styles.css',

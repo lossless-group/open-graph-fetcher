@@ -3,6 +3,12 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 declare module 'obsidian' {
   interface App {
     commands: any;
+    workspace: {
+      activeEditor?: {
+        editor: Editor;
+      };
+      getActiveViewOfType<T extends typeof MarkdownView>(type: T): InstanceType<T> | null;
+    };
   }
   
   interface Editor {
@@ -18,13 +24,21 @@ declare module 'obsidian' {
     editor: Editor;
   }
 
+  interface PluginManifest {
+    dir: string;
+  }
+
   interface Plugin {
     app: App;
     addRibbonIcon(icon: string, tooltip: string, callback: () => void): HTMLElement;
-    addCommand(command: Command): void;
+    addCommand(command: {
+      id: string;
+      name: string;
+      editorCallback: (editor: Editor) => void;
+    }): void;
     addSettingTab(tab: PluginSettingTab): void;
-    loadData(): any;
-    saveData(data: any): void;
+    loadData(): Promise<any>;
+    saveData(data: any): Promise<void>;
   }
 
   interface Command {
