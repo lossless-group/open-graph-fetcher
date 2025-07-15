@@ -1,4 +1,5 @@
 import { Notice, Plugin, Editor } from 'obsidian';
+import { OpenGraphFetcherModal } from './src/modals/OpenGraphFetcherModal';
 import { OpenGraphPluginSettingsTab } from './src/settings/settings-tab';
 
 interface OpenGraphPluginSettings {
@@ -66,8 +67,7 @@ export default class OpenGraphPlugin extends Plugin {
             id: 'fetch-opengraph-data',
             name: 'Fetch OpenGraph Data',
             editorCallback: (_editor: Editor) => {
-                // TODO: Implement actual functionality
-                new Notice('Fetching OpenGraph data...');
+                new OpenGraphFetcherModal(this.app, this).open();
             }
         });
     }
