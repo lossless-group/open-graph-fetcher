@@ -18,6 +18,7 @@ export interface OpenGraphData {
   site_name: string;
   error?: string;
   date?: string;
+  fetchDate?: string;
 }
 
 export interface OpenGraphPluginSettingsTab extends PluginSettingTab {

@@ -1,18 +1,18 @@
 import { Modal, App, TFile } from 'obsidian';
 import { OpenGraphService, OpenGraphServiceError } from '../services/openGraphService';
 import { PluginSettings, OpenGraphData } from '../types/open-graph-service';
-import { Plugin } from 'obsidian';
-
-declare class OpenGraphPlugin extends Plugin {
-  settings: PluginSettings;
-}
+import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
 
 interface ModalOptions {
   overwriteExisting: boolean;
-  createNew: boolean;
+  createNewProperties: boolean;
   writeErrors: boolean;
   updateFetchDate: boolean;
   batchDelay: number;
+}
+
+interface OpenGraphPlugin extends Plugin {
+  settings: PluginSettings;
 }
 
 export class OpenGraphFetcherModal extends Modal {
@@ -27,6 +27,8 @@ export class OpenGraphFetcherModal extends Modal {
   private processing: boolean = false;
   private batchDelay: number = 1000;
 
+
+
   private async findFileForUrl(url: string): Promise<TFile | null> {
     try {
       const files = this.app.vault.getMarkdownFiles();
@@ -40,86 +42,6 @@ export class OpenGraphFetcherModal extends Modal {
     } catch (error) {
       console.error('Error finding file:', error);
       return null;
-    }
-  }
-
-  private async createFileForUrl(url: string): Promise<TFile> {
-    try {
-      const fileName = this.sanitizeUrlForFileName(url);
-      const path = `open-graph/${fileName}.md`;
-      return await this.app.vault.create(path, `---\nurl: ${url}\n---\n`);
-    } catch (error) {
-      console.error('Error creating file:', error);
-      throw new OpenGraphServiceError(
-        `Failed to create file for ${url}`,
-        'FILE_CREATION_FAILURE'
-      );
-    }
-  }
-
-  private sanitizeUrlForFileName(url: string): string {
-    return url.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-  }
-
-  private async readFileData(file: TFile): Promise<OpenGraphData | null> {
-    try {
-      const content = await this.app.vault.read(file);
-      if (!content) {
-        return null;
-      }
-      const frontmatter = this.extractFrontmatter(content);
-      return frontmatter || null;
-    } catch (error) {
-      console.error('Error reading file:', error);
-      return null;
-    }
-  }
-
-  private extractFrontmatter(content: string): OpenGraphData | null {
-    if (!content) {
-      return null;
-    }
-    const match = content.match(/---\n(.*?)\n---/s);
-    if (!match || !match[1]) return null;
-    try {
-      const frontmatter = JSON.parse(match[1]);
-      // Ensure all required properties exist
-      return {
-        title: String(frontmatter.title) || '',
-        description: String(frontmatter.description) || '',
-        image: typeof frontmatter.image === 'string' ? frontmatter.image : null,
-        url: String(frontmatter.url) || '',
-        type: String(frontmatter.type) || 'website',
-        site_name: String(frontmatter.site_name) || '',
-        error: typeof frontmatter.error === 'string' ? frontmatter.error : undefined,
-        date: typeof frontmatter.date === 'string' ? frontmatter.date : undefined
-      } as OpenGraphData;
-    } catch (error) {
-      console.error('Error parsing frontmatter:', error);
-      return null;
-    }
-  }
-
-  private async writeFileData(file: TFile, data: OpenGraphData): Promise<void> {
-    try {
-      let content = await this.app.vault.read(file);
-      const frontmatter = this.extractFrontmatter(content);
-      
-      const newFrontmatter = `---\n${JSON.stringify(data, null, 2)}\n---\n`;
-      
-      if (frontmatter) {
-        content = content.replace(/---\n(.*?)\n---/s, newFrontmatter);
-      } else {
-        content = `${newFrontmatter}\n${content}`;
-      }
-      
-      await this.app.vault.modify(file, content);
-    } catch (error) {
-      console.error('Error writing file:', error);
-      throw new OpenGraphServiceError(
-        `Failed to write file data`,
-        'FILE_WRITE_FAILURE'
-      );
     }
   }
 
@@ -152,6 +74,27 @@ export class OpenGraphFetcherModal extends Modal {
     }
   }
 
+
+
+  private sanitizeUrlForFileName(url: string): string {
+    return url.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+  }
+
+  private extractFrontmatter(content: string): Record<string, any> | null {
+    if (!content) {
+      return null;
+    }
+    const match = content.match(/---\n(.*?)\n---/s);
+    if (!match || !match[1]) return null;
+    try {
+      const frontmatter = JSON.parse(match[1]);
+      return frontmatter;
+    } catch (error) {
+      console.error('Error parsing frontmatter:', error);
+      return null;
+    }
+  }
+
   private async createErrorFile(url: string): Promise<TFile | null> {
     try {
       const fileName = this.sanitizeUrlForFileName(url);
@@ -163,13 +106,36 @@ export class OpenGraphFetcherModal extends Modal {
     }
   }
 
+  private async writeFileData(file: TFile, data: OpenGraphData): Promise<void> {
+    try {
+      let content = await this.app.vault.read(file);
+      const frontmatter = this.extractFrontmatter(content);
+      
+      const newFrontmatter = `---\n${JSON.stringify(data, null, 2)}\n---\n`;
+      
+      if (frontmatter) {
+        content = content.replace(/---\n(.*?)\n---/s, newFrontmatter);
+      } else {
+        content = `${newFrontmatter}\n${content}`;
+      }
+      
+      await this.app.vault.modify(file, content);
+    } catch (error) {
+      console.error('Error writing file:', error);
+      throw new OpenGraphServiceError(
+        `Failed to write file data`,
+        'FILE_WRITE_FAILURE'
+      );
+    }
+  }
+
   constructor(app: App, plugin: OpenGraphPlugin) {
     super(app);
     this.settings = plugin.settings;
     this.service = new OpenGraphService(this.settings);
     this.options = {
       overwriteExisting: false,
-      createNew: true,
+      createNewProperties: true,
       writeErrors: true,
       updateFetchDate: true,
       batchDelay: this.settings.rateLimit || 1000
@@ -201,7 +167,7 @@ export class OpenGraphFetcherModal extends Modal {
     };
 
     createCheckboxOption('Overwrite Existing', 'overwriteExisting');
-    createCheckboxOption('Create New Files', 'createNew');
+    createCheckboxOption('Create new YAML properties if none exists?', 'createNewProperties');
     createCheckboxOption('Write Errors', 'writeErrors');
     createCheckboxOption('Update Fetch Date', 'updateFetchDate');
 
@@ -276,6 +242,16 @@ export class OpenGraphFetcherModal extends Modal {
     return urls;
   }
 
+  private updateProgress(): void {
+    if (!this.progressBar || !this.statusEl) return;
+
+    const progress = Math.round((this.currentBatchIndex / this.totalUrls) * 100);
+    if (this.progressBar instanceof HTMLProgressElement) {
+      this.progressBar.value = progress;
+    }
+    this.statusEl?.setText(`Processing ${this.currentBatchIndex}/${this.totalUrls} URLs (${progress}%)`);
+  }
+
   private async processBatch(): Promise<void> {
     for (const url of this.batch) {
       if (!this.processing) break;
@@ -298,35 +274,55 @@ export class OpenGraphFetcherModal extends Modal {
         }
       }
     }
+  }
 
-    this.processing = false;
-    this.statusEl?.setText('Finished processing URLs');
+  private clearEventListeners(): void {
+    // Clear any event listeners that need cleanup
+    // In this case, we don't have any specific event listeners to clear
+    // This method is required by the parent Modal class
   }
 
   private async processMetadata(url: string, data: OpenGraphData): Promise<void> {
     try {
       const file = await this.findFileForUrl(url);
       if (!file) {
-        if (!this.options.createNew) {
-          return;
-        }
-        const newFile = await this.createFileForUrl(url);
-        if (!newFile) {
-          throw new OpenGraphServiceError(
-            `Failed to create file for ${url}`,
-            'FILE_CREATION_FAILURE'
-          );
-        }
-        await this.writeFileData(newFile, data);
-        this.statusEl?.setText(`Successfully processed ${url}`);
-      } else {
-        const existingData = await this.readFileData(file);
-        if (existingData && !this.options.overwriteExisting) {
-          return;
-        }
-        await this.writeFileData(file, data);
-        this.statusEl?.setText(`Successfully updated ${url}`);
+        // Skip if no file exists
+        return;
       }
+
+      // Read file content
+      const content = await this.app.vault.read(file);
+
+      // Extract existing frontmatter
+      const existingFrontmatter = extractFrontmatter(content);
+      const frontmatterObject: Record<string, any> = existingFrontmatter || {};
+
+      // Update with new OpenGraph data
+      if (this.options.createNewProperties || !frontmatterObject.url) {
+        frontmatterObject.url = url;
+        frontmatterObject.title = data.title || '';
+        frontmatterObject.description = data.description || '';
+        frontmatterObject.image = data.image || null;
+        if (this.options.updateFetchDate) {
+          frontmatterObject.fetchDate = new Date().toISOString();
+        }
+      }
+
+      // Format and update frontmatter
+      const newFrontmatter = formatFrontmatter(frontmatterObject);
+      
+      // Get current content
+      const currentContent = await this.app.vault.read(file);
+      
+      // Replace or add frontmatter
+      const newContent = currentContent.replace(/---\n(.*?)\n---/s, `---\n${newFrontmatter}\n---`);
+      
+      // If no frontmatter was found, add it at the start
+      const finalContent = newContent.startsWith('---') ? newContent : `---\n${newFrontmatter}\n---\n${newContent}`;
+      
+      await this.app.vault.modify(file, finalContent);
+      
+      this.statusEl?.setText(`Successfully updated ${url}`);
     } catch (error: unknown) {
       console.error('Error processing metadata:', error);
       if (error instanceof OpenGraphServiceError) {
@@ -339,17 +335,5 @@ export class OpenGraphFetcherModal extends Modal {
     }
   }
 
-  private updateProgress(): void {
-    if (!this.progressBar || !this.statusEl) return;
 
-    const progress = Math.round((this.currentBatchIndex / this.totalUrls) * 100);
-    this.progressBar.querySelector('.progress-fill')?.setAttribute('style', `width: ${progress}%`);
-    this.statusEl.setText(`Processing ${this.currentBatchIndex}/${this.totalUrls} URLs (${progress}%)`);
-  }
-
-
-
-  private clearEventListeners(): void {
-    // Clear any event listeners that need cleanup
-  }
 }
