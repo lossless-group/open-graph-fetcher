@@ -45,7 +45,8 @@
     /* Paths */
     "paths": {
       "*": ["node_modules/*"]
-    }
+    },
+    "types": ["obsidian"]
   },
   "include": [
     "**/*.ts",

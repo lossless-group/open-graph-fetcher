@@ -18,7 +18,53 @@ declare module 'obsidian' {
     editor: Editor;
   }
 
+  interface Plugin {
+    app: App;
+    addRibbonIcon(icon: string, tooltip: string, callback: () => void): HTMLElement;
+    addCommand(command: Command): void;
+    addSettingTab(tab: PluginSettingTab): void;
+    loadData(): any;
+    saveData(data: any): void;
+  }
+
+  interface Command {
+    id: string;
+    name: string;
+    callback: () => void;
+  }
+
+  interface PluginSettingTab {
+    containerEl: HTMLElement;
+    display(): void;
+  }
+
   interface PluginManifest {
     dir: string;
+  }
+
+  interface TFile {
+    name: string;
+    path: string;
+  }
+
+  interface Setting {
+    constructor(containerEl: HTMLElement);
+    setName(name: string): this;
+    setDesc(desc: string): this;
+    setPlaceholder(placeholder: string): this;
+    setValue(value: any): this;
+    onChange(callback: (value: any) => void): this;
+    addText(callback: (text: Setting) => void): this;
+    addSlider(callback: (slider: Setting) => void): this;
+    setLimits(min: number, max: number, step: number): this;
+  }
+
+  interface Notice {
+    constructor(message: string, duration?: number);
+  }
+
+  interface HTMLElement extends globalThis.HTMLElement {
+    empty(): void;
+    createEl(tag: string, props?: { text?: string }): HTMLElement;
   }
 }
