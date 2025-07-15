@@ -22,17 +22,6 @@ const DEFAULT_SETTINGS: OpenGraphPluginSettings = {
 export default class OpenGraphPlugin extends Plugin {
     settings: OpenGraphPluginSettings = DEFAULT_SETTINGS;
 
-    async loadSettings(): Promise<void> {
-        const savedSettings = await this.loadData() as unknown as OpenGraphPluginSettings;
-        if (savedSettings) {
-            this.settings = { ...DEFAULT_SETTINGS, ...savedSettings };
-        }
-    }
-
-    async saveSettings(): Promise<void> {
-        await this.saveData(this.settings);
-    }
-
     async onload(): Promise<void> {
         await this.loadSettings();
 
@@ -46,11 +35,29 @@ export default class OpenGraphPlugin extends Plugin {
         );
         ribbonIconEl.addClass('open-graph-fetcher-ribbon-icon');
 
-        // Add settings tab
+        // This adds a settings tab so the user can configure various aspects of the plugin
         this.addSettingTab(new OpenGraphPluginSettingsTab(this.app, this));
 
         // Register commands
         this.registerCommands();
+    }
+
+    async loadSettings(): Promise<void> {
+        const data = await this.loadData();
+        if (data) {
+            this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+        } else {
+            this.settings = DEFAULT_SETTINGS;
+        }
+    }
+
+    async saveSettings(): Promise<void> {
+        try {
+            await this.saveData(this.settings);
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            new Notice('Failed to save settings');
+        }
     }
 
     private registerCommands(): void {
