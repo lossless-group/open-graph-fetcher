@@ -8,7 +8,6 @@ interface ModalOptions {
   createNewProperties: boolean;
   writeErrors: boolean;
   updateFetchDate: boolean;
-  batchDelay: number;
 }
 
 interface OpenGraphPlugin {
@@ -21,27 +20,7 @@ export class OpenGraphFetcherModal extends Modal {
   private options: ModalOptions;
   private statusEl: HTMLElement | null = null;
   private progressBar: HTMLProgressElement | null = null;
-  private batch: string[] = [];
-  private currentBatchIndex: number = 0;
-  private totalUrls: number = 0;
   private processing: boolean = false;
-  private batchDelay: number = 1000;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   constructor(app: App, plugin: OpenGraphPlugin) {
     super(app);
@@ -51,9 +30,8 @@ export class OpenGraphFetcherModal extends Modal {
       overwriteExisting: false,
       createNewProperties: true,
       writeErrors: true,
-      updateFetchDate: true,
-      batchDelay: this.settings.rateLimit || 1000
-    } as ModalOptions;
+      updateFetchDate: true
+    };
   }
 
   onOpen(): void {
@@ -97,27 +75,7 @@ export class OpenGraphFetcherModal extends Modal {
     createCheckboxOption('Write Errors', 'writeErrors');
     createCheckboxOption('Update Fetch Date', 'updateFetchDate');
 
-    // Batch delay slider
-    const delayContainer = contentEl.createDiv('opengraph-delay-container');
-    delayContainer.createEl('label', { 
-      text: 'Batch Delay (ms):',
-      cls: 'opengraph-delay-label'
-    });
-    const delaySlider = delayContainer.createEl('input', { 
-      type: 'range',
-      cls: 'opengraph-delay-slider'
-    });
-    delaySlider.min = '100';
-    delaySlider.max = '5000';
-    delaySlider.value = this.options.batchDelay.toString();
-    const delayValue = delayContainer.createEl('span', { 
-      text: this.options.batchDelay.toString(),
-      cls: 'opengraph-delay-value'
-    });
-    delaySlider.oninput = () => {
-      this.options.batchDelay = parseInt(delaySlider.value);
-      delayValue.textContent = delaySlider.value;
-    };
+
 
     // Status and progress
     this.statusEl = contentEl.createDiv('opengraph-status');
@@ -152,8 +110,6 @@ export class OpenGraphFetcherModal extends Modal {
   onClose(): void {
     this.clearEventListeners();
     this.processing = false;
-    this.batch = [];
-    this.currentBatchIndex = 0;
   }
 
   private async fetchMetadata(): Promise<void> {
@@ -177,45 +133,38 @@ export class OpenGraphFetcherModal extends Modal {
       this.processing = false;
       return;
     }
-
-    this.batch = [url];
-    this.totalUrls = 1;
-    this.currentBatchIndex = 0;
     
     this.statusEl?.setText(`Processing URL: ${url}`);
-    await this.processBatch();
+    await this.processCurrentFile(url);
   }
 
 
 
-  private updateProgress(): void {
-    if (!this.progressBar || !this.statusEl) return;
+  private async processCurrentFile(url: string): Promise<void> {
+    if (!this.processing) return;
 
-    const progress = Math.round((this.currentBatchIndex / this.totalUrls) * 100);
-    if (this.progressBar instanceof HTMLProgressElement) {
-      this.progressBar.value = progress;
-    }
-    this.statusEl?.setText(`Processing ${this.currentBatchIndex}/${this.totalUrls} URLs (${progress}%)`);
-  }
-
-  private async processBatch(): Promise<void> {
-    for (const url of this.batch) {
-      if (!this.processing) break;
-
-      try {
-        const data = await this.service.fetchMetadata(url, this.settings);
-        await this.processMetadata(url, data);
-        this.currentBatchIndex++;
-        this.updateProgress();
-        await new Promise(resolve => setTimeout(resolve, this.batchDelay));
-      } catch (error: unknown) {
-        if (error instanceof OpenGraphServiceError) {
-          this.statusEl?.setText(`Error processing ${url}: ${error.message}`);
-        } else {
-          console.error('Unexpected error:', error);
-          this.statusEl?.setText('Unexpected error occurred');
-        }
+    try {
+      this.statusEl?.setText('Fetching OpenGraph data...');
+      if (this.progressBar instanceof HTMLProgressElement) {
+        this.progressBar.value = 50;
       }
+      
+      const data = await this.service.fetchMetadata(url, this.settings);
+      await this.processMetadata(url, data);
+      
+      if (this.progressBar instanceof HTMLProgressElement) {
+        this.progressBar.value = 100;
+      }
+      this.statusEl?.setText('OpenGraph data fetched successfully!');
+    } catch (error: unknown) {
+      if (error instanceof OpenGraphServiceError) {
+        this.statusEl?.setText(`Error processing ${url}: ${error.message}`);
+      } else {
+        console.error('Unexpected error:', error);
+        this.statusEl?.setText('Unexpected error occurred');
+      }
+    } finally {
+      this.processing = false;
     }
   }
 
