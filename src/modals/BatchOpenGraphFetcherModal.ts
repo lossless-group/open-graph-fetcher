@@ -409,6 +409,9 @@ export class BatchOpenGraphFetcherModal extends Modal {
     
     if (!frontmatter) return;
     
+    // Save the original tags if they exist
+    const originalTags = frontmatter.tags;
+    
     // Update frontmatter with OpenGraph data using configurable field names
     if (data.title && (this.options.overwriteExisting || !frontmatter[this.settings.titleFieldName])) {
       frontmatter[this.settings.titleFieldName] = data.title;
@@ -426,8 +429,25 @@ export class BatchOpenGraphFetcherModal extends Modal {
       frontmatter[this.settings.fetchDateFieldName] = new Date().toISOString();
     }
     
-    const updatedContent = formatFrontmatter(frontmatter);
-    await this.app.vault.modify(file as any, updatedContent);
+    // Restore the original tags if they existed
+    if (originalTags !== undefined) {
+      frontmatter.tags = originalTags;
+    }
+    
+    // Get the original content to preserve formatting
+    const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+    const match = content.match(frontmatterRegex);
+    
+    if (match) {
+      // Replace only the frontmatter part while preserving the rest of the content
+      const updatedFrontmatter = formatFrontmatter(frontmatter);
+      const updatedContent = content.replace(frontmatterRegex, `---\n${updatedFrontmatter}\n---`);
+      await this.app.vault.modify(file as any, updatedContent);
+    } else {
+      // Fallback to the original behavior if no frontmatter is found
+      const updatedContent = formatFrontmatter(frontmatter);
+      await this.app.vault.modify(file as any, updatedContent);
+    }
   }
 
   private updateFileStatus(filePath: string | undefined, success: boolean): void {
