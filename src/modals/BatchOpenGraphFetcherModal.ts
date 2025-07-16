@@ -73,18 +73,9 @@ export class BatchOpenGraphFetcherModal extends Modal {
   async onOpen(): Promise<void> {
     const contentEl = this.contentEl as unknown as ObsidianHTMLElement;
     contentEl.empty();
-    
-    // Set modal width
-    const modalContainer = contentEl.closest('.modal-container');
-    const modalContent = contentEl.closest('.modal-content');
-    
-    if (modalContainer && modalContent) {
-      (modalContainer as HTMLElement).style.width = '90vw';
-      (modalContent as HTMLElement).style.maxWidth = 'none';
-    }
-    
     contentEl.addClass('batch-opengraph-fetcher-modal');
-
+    this.containerEl.addClass('batch-opengraph-fetcher-modal');
+    
     await this.createHeader(contentEl);
     await this.createDirectorySection(contentEl);
     await this.createFileListSection(contentEl);
@@ -93,7 +84,9 @@ export class BatchOpenGraphFetcherModal extends Modal {
     this.createButtonSection(contentEl);
     
     // Initial directory scan
-    await this.scanCurrentDirectory();
+    if (this.targetDirectory) {
+      await this.scanCurrentDirectory();
+    }
   }
 
   onClose(): void {
