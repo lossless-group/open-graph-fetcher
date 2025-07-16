@@ -2,7 +2,6 @@ import { Modal, App } from 'obsidian';
 import { OpenGraphService, OpenGraphServiceError } from '../services/openGraphService';
 import { PluginSettings, OpenGraphData } from '../types/open-graph-service';
 import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
-import '../styles/open-graph-fetcher.css';
 
 interface ModalOptions {
   overwriteExisting: boolean;
@@ -132,7 +131,7 @@ export class OpenGraphFetcherModal extends Modal {
     // Buttons with Obsidian styling
     const buttonContainer = contentEl.createDiv('opengraph-button-container');
     const fetchButton = buttonContainer.createEl('button', { 
-      text: 'Fetch URLs',
+      text: 'Fetch for this File',
       cls: 'mod-cta opengraph-fetch-btn'
     });
     fetchButton.onclick = () => {
@@ -147,7 +146,7 @@ export class OpenGraphFetcherModal extends Modal {
       this.close();
     };
     
-    // CSS styles are imported at the top of the file
+    // CSS styles are built separately by esbuild and loaded by Obsidian
   }
 
   onClose(): void {

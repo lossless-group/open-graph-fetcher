@@ -12,12 +12,14 @@ export class OpenGraphServiceError extends Error {
 export class OpenGraphService {
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  private readonly settings: PluginSettings;
   private readonly cache: Map<string, OpenGraphData>;
   private readonly cacheDuration: number;
 
   constructor(settings: PluginSettings) {
     this.apiKey = settings.apiKey;
     this.baseUrl = settings.baseUrl;
+    this.settings = settings;
     this.cache = new Map();
     this.cacheDuration = settings.cacheDuration;
   }
@@ -31,13 +33,14 @@ export class OpenGraphService {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await fetch(`${this.baseUrl}/v1/parse`, {
-          method: 'POST',
+        // Use configurable API endpoint format
+        const apiUrl = `${this.settings.apiUrl}/${encodeURIComponent(url)}?app_id=${this.apiKey}`;
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ url }),
         });
 
         if (!response.ok) {
@@ -45,8 +48,26 @@ export class OpenGraphService {
         }
 
         const data = await response.json();
-        return data;
+        
+        // Validate response structure
+        if (!data.openGraph) {
+          throw new Error('Invalid API response: missing openGraph data');
+        }
+        
+        // Extract and normalize OpenGraph data
+        const ogData: OpenGraphData = {
+          title: data.openGraph.title || '',
+          description: data.openGraph.description || '',
+          image: data.openGraph.image?.url || data.openGraph.image || '',
+          url: data.openGraph.url || url,
+          site_name: data.openGraph.site_name || '',
+          type: data.openGraph.type || '',
+          date: new Date().toISOString()
+        };
+        
+        return ogData;
       } catch (error: unknown) {
+        console.error(`OpenGraph fetch attempt ${attempt + 1}/${maxRetries} failed:`, error);
         if (attempt === maxRetries - 1) break;
 
         // Exponential backoff
@@ -154,7 +175,7 @@ export class OpenGraphService {
    * Find URLs in all files within a target directory
    * This will be implemented later as requested
    */
-  async findUrlsInTargetDir(app: App, targetPath: string): Promise<string[]> {
+  async findUrlsInTargetDir(_app: App, _targetPath: string): Promise<string[]> {
     // TODO: Implement this method when needed
     // Should search for URLs in frontmatter of files in the specified directory
     return [];

@@ -3,6 +3,7 @@ import { PluginSettingTab } from 'obsidian';
 export interface PluginSettings {
   apiKey: string;
   baseUrl: string;
+  apiUrl: string;
   retries: number;
   backoffDelay: number;
   rateLimit: number;

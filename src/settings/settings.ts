@@ -5,6 +5,7 @@ import OpenGraphPlugin from '../../main';
 export interface OpenGraphSettings {
     apiKey: string;
     baseUrl: string;
+    apiUrl: string;
     retries: number;
     backoffDelay: number;
     rateLimit: number;
@@ -14,6 +15,7 @@ export interface OpenGraphSettings {
 export const DEFAULT_SETTINGS: OpenGraphSettings = {
     apiKey: '',
     baseUrl: 'https://api.opengraph.io',
+    apiUrl: 'https://opengraph.io/api/1.1/site',
     retries: 3,
     backoffDelay: 1000,
     rateLimit: 60,
@@ -55,6 +57,18 @@ export class OpenGraphSettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.baseUrl)
                 .onChange(async (value) => {
                     this.plugin.settings.baseUrl = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // API URL setting
+        new Setting(containerEl)
+            .setName('API URL')
+            .setDesc('OpenGraph.io API endpoint URL')
+            .addText(text => text
+                .setPlaceholder('https://opengraph.io/api/1.1/site')
+                .setValue(this.plugin.settings.apiUrl)
+                .onChange(async (value) => {
+                    this.plugin.settings.apiUrl = value;
                     await this.plugin.saveSettings();
                 }));
 
