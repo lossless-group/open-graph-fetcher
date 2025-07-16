@@ -1,7 +1,8 @@
-import { Modal, App, TFile } from 'obsidian';
+import { Modal, App } from 'obsidian';
 import { OpenGraphService, OpenGraphServiceError } from '../services/openGraphService';
 import { PluginSettings, OpenGraphData } from '../types/open-graph-service';
 import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
+import '../styles/open-graph-fetcher.css';
 
 interface ModalOptions {
   overwriteExisting: boolean;
@@ -29,105 +30,19 @@ export class OpenGraphFetcherModal extends Modal {
 
 
 
-  private async findFileForUrl(url: string): Promise<TFile | null> {
-    try {
-      const files = this.app.vault.getMarkdownFiles();
-      for (const file of files) {
-        const content = await this.app.vault.read(file);
-        if (content.includes(url)) {
-          return file;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error('Error finding file:', error);
-      return null;
-    }
-  }
-
-  private async writeErrorToFile(url: string, error: OpenGraphServiceError): Promise<void> {
-    try {
-      const errorData: OpenGraphData = {
-        title: 'Error',
-        description: error.message,
-        image: null,
-        url: url,
-        type: 'error',
-        site_name: 'OpenGraph Fetcher Error',
-        date: new Date().toISOString()
-      };
-
-      const errorFile = await this.createErrorFile(url);
-      if (!errorFile) {
-        throw new OpenGraphServiceError(
-          `Failed to create error file for ${url}`,
-          'ERROR_FILE_CREATION_FAILURE'
-        );
-      }
-      await this.writeFileData(errorFile, errorData);
-    } catch (writeError) {
-      console.error('Failed to write error to file:', writeError);
-      throw new OpenGraphServiceError(
-        `Failed to write error file for ${url}`,
-        'ERROR_FILE_FAILURE'
-      );
-    }
-  }
 
 
 
-  private sanitizeUrlForFileName(url: string): string {
-    return url.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-  }
 
-  private extractFrontmatter(content: string): Record<string, any> | null {
-    if (!content) {
-      return null;
-    }
-    const match = content.match(/---\n(.*?)\n---/s);
-    if (!match || !match[1]) return null;
-    try {
-      const frontmatter = JSON.parse(match[1]);
-      return frontmatter;
-    } catch (error) {
-      console.error('Error parsing frontmatter:', error);
-      return null;
-    }
-  }
 
-  private async createErrorFile(url: string): Promise<TFile | null> {
-    try {
-      const fileName = this.sanitizeUrlForFileName(url);
-      const path = `open-graph/errors/${fileName}.md`;
-      return await this.app.vault.create(path, `---\nurl: ${url}\n---\n`);
-    } catch (error) {
-      console.error('Error creating error file:', error);
-      return null;
-    }
-  }
 
-  private async writeFileData(file: TFile, data: OpenGraphData): Promise<void> {
-    try {
-      let content = await this.app.vault.read(file);
-      const frontmatter = this.extractFrontmatter(content);
-      
-      const newFrontmatter = `---\n${JSON.stringify(data, null, 2)}\n---\n`;
-      
-      if (frontmatter) {
-        content = content.replace(/---\n(.*?)\n---/s, newFrontmatter);
-      } else {
-        content = `${newFrontmatter}\n${content}`;
-      }
-      
-      await this.app.vault.modify(file, content);
-    } catch (error) {
-      console.error('Error writing file:', error);
-      throw new OpenGraphServiceError(
-        `Failed to write file data`,
-        'FILE_WRITE_FAILURE'
-      );
-    }
-  }
+
+
+
+
+
+
+
 
   constructor(app: App, plugin: OpenGraphPlugin) {
     super(app);
@@ -145,25 +60,37 @@ export class OpenGraphFetcherModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
+    contentEl.addClass('opengraph-fetcher-modal');
+    
+    // Create header
+    const header = contentEl.createDiv('opengraph-header');
+    header.createEl('h2', { text: 'OpenGraph Fetcher', cls: 'opengraph-title' });
 
-    // Create UI elements
-    contentEl.createEl('h2', { text: 'OpenGraph Fetcher' });
-
-    // Create options container
-    const optionsContainer = contentEl.createDiv({ cls: 'open-graph-options' });
+    // Create options section with table layout
+    const optionsContainer = contentEl.createDiv('opengraph-options-container');
+    const optionsTable = optionsContainer.createEl('table', { cls: 'opengraph-options-table' });
     
     const createCheckboxOption = (labelText: string, optionKey: keyof ModalOptions) => {
-      const label = optionsContainer.createEl('label');
-      label.setText(labelText);
-      const checkbox = label.createEl('input', { attr: { type: 'checkbox' } });
+      const row = optionsTable.createEl('tr', { cls: 'opengraph-option-row' });
+      const checkboxCell = row.createEl('td', { cls: 'opengraph-checkbox-cell' });
+      const labelCell = row.createEl('td', { cls: 'opengraph-label-cell' });
+      
+      const checkbox = checkboxCell.createEl('input', { 
+        type: 'checkbox',
+        cls: 'opengraph-checkbox'
+      });
       checkbox.checked = this.options[optionKey] as boolean;
       checkbox.onchange = (e: Event) => {
         const target = e.target as HTMLInputElement;
-        this.options = {
-          ...this.options,
-          [optionKey]: target.checked
-        };
+        (this.options[optionKey] as boolean) = target.checked;
       };
+      
+      const label = labelCell.createEl('label', { 
+        text: labelText,
+        cls: 'opengraph-option-label'
+      });
+      label.setAttribute('for', optionKey);
+      checkbox.id = optionKey;
     };
 
     createCheckboxOption('Overwrite Existing', 'overwriteExisting');
@@ -171,42 +98,56 @@ export class OpenGraphFetcherModal extends Modal {
     createCheckboxOption('Write Errors', 'writeErrors');
     createCheckboxOption('Update Fetch Date', 'updateFetchDate');
 
-    // Create progress container
-    const progressContainer = contentEl.createDiv({ cls: 'open-graph-progress' });
-    this.progressBar = progressContainer.createEl('progress', { attr: { max: '100' } });
-    if (this.progressBar instanceof HTMLProgressElement) {
-      this.progressBar.value = 0;
-    }
+    // Batch delay slider
+    const delayContainer = contentEl.createDiv('opengraph-delay-container');
+    delayContainer.createEl('label', { 
+      text: 'Batch Delay (ms):',
+      cls: 'opengraph-delay-label'
+    });
+    const delaySlider = delayContainer.createEl('input', { 
+      type: 'range',
+      cls: 'opengraph-delay-slider'
+    });
+    delaySlider.min = '100';
+    delaySlider.max = '5000';
+    delaySlider.value = this.options.batchDelay.toString();
+    const delayValue = delayContainer.createEl('span', { 
+      text: this.options.batchDelay.toString(),
+      cls: 'opengraph-delay-value'
+    });
+    delaySlider.oninput = () => {
+      this.options.batchDelay = parseInt(delaySlider.value);
+      delayValue.textContent = delaySlider.value;
+    };
 
-    // Create status container
-    this.statusEl = contentEl.createDiv({ cls: 'open-graph-status' });
-    this.statusEl.setText('Ready to fetch URLs');
-
-    // Create buttons
-    const buttonContainer = contentEl.createDiv({ cls: 'open-graph-buttons' });
+    // Status and progress
+    this.statusEl = contentEl.createDiv('opengraph-status');
+    this.statusEl.setText('Ready to fetch metadata');
     
-    const fetchButton = buttonContainer.createEl('button');
-    fetchButton.setText('Fetch URLs');
+    this.progressBar = contentEl.createEl('progress') as HTMLProgressElement;
+    this.progressBar.addClass('opengraph-progress');
+    this.progressBar.max = 100;
+    this.progressBar.value = 0;
+
+    // Buttons with Obsidian styling
+    const buttonContainer = contentEl.createDiv('opengraph-button-container');
+    const fetchButton = buttonContainer.createEl('button', { 
+      text: 'Fetch URLs',
+      cls: 'mod-cta opengraph-fetch-btn'
+    });
     fetchButton.onclick = () => {
       this.fetchMetadata();
     };
     
-    const cancelButton = buttonContainer.createEl('button');
-    cancelButton.setText('Cancel');
+    const cancelButton = buttonContainer.createEl('button', { 
+      text: 'Cancel',
+      cls: 'mod-cta-outline opengraph-cancel-btn'
+    });
     cancelButton.onclick = () => {
       this.close();
     };
-
-    // Set modal width
-    const modalContainer = contentEl.closest('.modal-container') as HTMLElement;
-    const modalContent = contentEl.closest('.modal-content') as HTMLElement;
     
-    if (modalContainer && modalContent) {
-      modalContainer.style.width = '80vw';
-      modalContent.style.maxWidth = 'none';
-    }
-    
-    contentEl.addClass('open-graph-fetcher-modal');
+    // CSS styles are imported at the top of the file
   }
 
   onClose(): void {
@@ -220,27 +161,33 @@ export class OpenGraphFetcherModal extends Modal {
     if (this.processing) return;
 
     this.processing = true;
-    this.statusEl?.setText('Fetching URLs...');
-    this.batch = await this.findUrlsInVault();
-    this.totalUrls = this.batch.length;
-    this.currentBatchIndex = 0;
+    this.statusEl?.setText('Extracting URL from current file...');
     
-    if (this.totalUrls === 0) {
-      this.statusEl?.setText('No URLs found in vault');
+    // Get the currently active file
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      this.statusEl?.setText('No active file found');
       this.processing = false;
       return;
     }
 
-    this.statusEl?.setText(`Found ${this.totalUrls} URLs to process`);
+    // Extract URL from current file's frontmatter
+    const url = await this.service.extractUrlFromCurrentFile(this.app, activeFile);
+    if (!url) {
+      this.statusEl?.setText('No URL found in current file\'s frontmatter');
+      this.processing = false;
+      return;
+    }
+
+    this.batch = [url];
+    this.totalUrls = 1;
+    this.currentBatchIndex = 0;
+    
+    this.statusEl?.setText(`Processing URL: ${url}`);
     await this.processBatch();
   }
 
-  private async findUrlsInVault(): Promise<string[]> {
-    const urls: string[] = [];
-    // Implementation to find URLs in vault files
-    // This should be implemented based on your specific requirements
-    return urls;
-  }
+
 
   private updateProgress(): void {
     if (!this.progressBar || !this.statusEl) return;
@@ -264,9 +211,6 @@ export class OpenGraphFetcherModal extends Modal {
         await new Promise(resolve => setTimeout(resolve, this.batchDelay));
       } catch (error: unknown) {
         if (error instanceof OpenGraphServiceError) {
-          if (this.options.writeErrors) {
-            await this.writeErrorToFile(url, error);
-          }
           this.statusEl?.setText(`Error processing ${url}: ${error.message}`);
         } else {
           console.error('Unexpected error:', error);
@@ -284,10 +228,10 @@ export class OpenGraphFetcherModal extends Modal {
 
   private async processMetadata(url: string, data: OpenGraphData): Promise<void> {
     try {
-      const file = await this.findFileForUrl(url);
+      // Get the currently active file
+      const file = this.app.workspace.getActiveFile();
       if (!file) {
-        // Skip if no file exists
-        return;
+        throw new OpenGraphServiceError('No active file found', 'NO_ACTIVE_FILE');
       }
 
       // Read file content

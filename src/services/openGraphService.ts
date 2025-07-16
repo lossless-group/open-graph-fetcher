@@ -1,5 +1,6 @@
-import { Notice } from 'obsidian';
+import { Notice, TFile, App } from 'obsidian';
 import { PluginSettings, OpenGraphData } from '../types/open-graph-service';
+import { extractFrontmatter } from '../utils/yamlFrontmatter';
 
 export class OpenGraphServiceError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -128,5 +129,34 @@ export class OpenGraphService {
 
   invalidateCacheEntry(url: string): void {
     this.cache.delete(url);
+  }
+
+  /**
+   * Extract URL from the current file's YAML frontmatter
+   */
+  async extractUrlFromCurrentFile(app: App, file: TFile): Promise<string | null> {
+    try {
+      const content = await app.vault.read(file);
+      const frontmatter = extractFrontmatter(content);
+      
+      if (frontmatter && frontmatter.url && typeof frontmatter.url === 'string') {
+        return frontmatter.url;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error extracting URL from file ${file.path}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Find URLs in all files within a target directory
+   * This will be implemented later as requested
+   */
+  async findUrlsInTargetDir(app: App, targetPath: string): Promise<string[]> {
+    // TODO: Implement this method when needed
+    // Should search for URLs in frontmatter of files in the specified directory
+    return [];
   }
 }

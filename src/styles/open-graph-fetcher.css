@@ -1,1 +1,111 @@
 /* src/styles/open-graph-fetcher.css */
+
+.opengraph-fetcher-modal {
+  min-width: 500px;
+}
+
+.opengraph-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.opengraph-title {
+  color: var(--text-accent);
+  margin: 0;
+}
+
+.opengraph-options-container {
+  margin-bottom: 20px;
+}
+
+.opengraph-options-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.opengraph-option-row {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.opengraph-checkbox-cell {
+  width: 30px;
+  padding: 8px;
+  text-align: center;
+}
+
+.opengraph-label-cell {
+  padding: 8px 12px;
+}
+
+.opengraph-checkbox {
+  margin: 0;
+}
+
+.opengraph-option-label {
+  cursor: pointer;
+  color: var(--text-normal);
+}
+
+.opengraph-delay-container {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+}
+
+.opengraph-delay-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.opengraph-delay-slider {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.opengraph-delay-value {
+  font-weight: bold;
+  color: var(--text-accent);
+}
+
+.opengraph-status {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.opengraph-progress {
+  width: 100%;
+  height: 8px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.opengraph-button-container {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.opengraph-fetch-btn {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.opengraph-cancel-btn {
+  background: transparent;
+  border: 1px solid var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+
+.opengraph-fetch-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.opengraph-cancel-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
