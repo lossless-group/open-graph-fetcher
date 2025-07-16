@@ -59,6 +59,7 @@ export class OpenGraphService {
           title: data.openGraph.title || '',
           description: data.openGraph.description || '',
           image: data.openGraph.image?.url || data.openGraph.image || '',
+          favicon: data.favicon || data.openGraph.favicon || null,
           url: data.openGraph.url || url,
           site_name: data.openGraph.site_name || '',
           type: data.openGraph.type || '',

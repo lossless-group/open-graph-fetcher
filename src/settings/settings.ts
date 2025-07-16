@@ -14,6 +14,7 @@ export interface OpenGraphSettings {
     titleFieldName: string;
     descriptionFieldName: string;
     imageFieldName: string;
+    faviconFieldName: string;
     fetchDateFieldName: string;
 }
 
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: OpenGraphSettings = {
     titleFieldName: 'og_title',
     descriptionFieldName: 'og_description',
     imageFieldName: 'og_image',
+    faviconFieldName: 'og_favicon',
     fetchDateFieldName: 'og_last_fetch'
 };
 
@@ -146,6 +148,18 @@ export class OpenGraphSettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.imageFieldName)
                 .onChange(async (value) => {
                     this.plugin.settings.imageFieldName = value || 'og_image';
+                    await this.plugin.saveSettings();
+                }));
+
+        // Favicon field name
+        new Setting(containerEl)
+            .setName('Favicon Field Name')
+            .setDesc('Field name for the website favicon URL')
+            .addText(text => text
+                .setPlaceholder('og_favicon')
+                .setValue((this.plugin.settings as any).faviconFieldName || 'og_favicon')
+                .onChange(async (value) => {
+                    (this.plugin.settings as any).faviconFieldName = value || 'og_favicon';
                     await this.plugin.saveSettings();
                 }));
 

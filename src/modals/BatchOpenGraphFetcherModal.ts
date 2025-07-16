@@ -425,6 +425,11 @@ export class BatchOpenGraphFetcherModal extends Modal {
       frontmatter[this.settings.imageFieldName] = data.image;
     }
     
+    // Add favicon to frontmatter if available
+    if (data.favicon && (this.options.overwriteExisting || !frontmatter[this.settings.faviconFieldName])) {
+      frontmatter[this.settings.faviconFieldName] = data.favicon;
+    }
+    
     if (this.options.updateFetchDate) {
       frontmatter[this.settings.fetchDateFieldName] = new Date().toISOString();
     }

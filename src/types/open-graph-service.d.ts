@@ -12,6 +12,7 @@ export interface PluginSettings {
   titleFieldName: string;
   descriptionFieldName: string;
   imageFieldName: string;
+  faviconFieldName: string;
   fetchDateFieldName: string;
 }
 
@@ -19,6 +20,7 @@ export interface OpenGraphData {
   title: string;
   description: string;
   image: string | null;
+  favicon: string | null;
   url: string;
   type: string;
   site_name: string;

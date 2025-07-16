@@ -195,6 +195,10 @@ export class OpenGraphFetcherModal extends Modal {
         frontmatterObject[this.settings.titleFieldName] = data.title || '';
         frontmatterObject[this.settings.descriptionFieldName] = data.description || '';
         frontmatterObject[this.settings.imageFieldName] = data.image || null;
+        // Add favicon if available
+        if (data.favicon) {
+          frontmatterObject[this.settings.faviconFieldName] = data.favicon;
+        }
         if (this.options.updateFetchDate) {
           frontmatterObject[this.settings.fetchDateFieldName] = new Date().toISOString();
         }
