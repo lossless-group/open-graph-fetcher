@@ -1,4 +1,4 @@
-import { TFile, Vault } from 'obsidian';
+import { App, TFile, Vault } from 'obsidian';
 import { PluginSettings } from '../types/open-graph-service';
 import { extractFrontmatter } from '../utils/yamlFrontmatter';
 
@@ -12,9 +12,11 @@ export interface FileInfo {
 
 export class DirectoryScanner {
   private vault: Vault;
+  private app: App;
   
-  constructor(vault: Vault) {
+  constructor(vault: Vault, app: App) {
     this.vault = vault;
+    this.app = app;
   }
 
   async scanForEligibleFiles(directory: string, settings: PluginSettings): Promise<FileInfo[]> {
@@ -85,12 +87,13 @@ export class DirectoryScanner {
 
   async getCurrentWorkingDirectory(): Promise<string> {
     // Get the current active file's directory
-    const activeFile = this.vault.getAbstractFileByPath(
-      app.workspace.getActiveFile()?.path || ''
-    );
+    const activeFile = this.app.workspace.getActiveFile();
     
-    if (activeFile && activeFile.parent) {
-      return activeFile.parent.path;
+    if (activeFile) {
+      const file = this.vault.getAbstractFileByPath(activeFile.path);
+      if (file && 'parent' in file && file.parent) {
+        return file.parent.path;
+      }
     }
     
     // Default to root if no active file
