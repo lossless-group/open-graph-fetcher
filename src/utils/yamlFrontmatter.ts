@@ -82,6 +82,10 @@ export function formatFrontmatter(frontmatter: Record<string, any>): string {
       if (value === true) return `${key}: true`;
       if (value === false) return `${key}: false`;
       if (typeof value === 'number') return `${key}: ${value}`;
+      if (Array.isArray(value)) {
+        const items = value.map(item => `  - ${item}`).join('\n');
+        return `${key}:\n${items}`;
+      }
       return `${key}: "${String(value)}"`;
     })
     .join('\n');

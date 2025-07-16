@@ -1,6 +1,4 @@
-***
 ![Open Graph Fetcher Obsidian Plugin Banner Image](https://i.imgur.com/0v6sPkv.png)
-***
 
 # Open Graph Fetcher Obsidian Plugin
 
@@ -8,7 +6,21 @@ An Obsidian plugin that allows you to fetch Open Graph data from a URL using Ope
 
 ## Features
 
-### Batch Fetching
+### Command: Fetch Open Graph Data
+
+- Opens a modal where the user can configure:
+    - Whether to overwrite existing Open Graph data
+    - Whether to create new Open Graph data if missing
+    - Whether to write errors to YAML frontmatter
+    - Whether to update fetch date for processed files
+- Fetch Open Graph data from a URL using OpenGraph.io
+- See Progress and Status
+- Handle errors gracefully and display feedback
+- Returns Open Graph data to YAML frontmatter
+
+### Coming Soon:
+
+#### Command: Batch Fetch Open Graph Data
 
 - Select multiple files to process at once
 - Pause and resume processing
@@ -16,12 +28,6 @@ An Obsidian plugin that allows you to fetch Open Graph data from a URL using Ope
 - Update fetch date for processed files
 - Write errors to YAML frontmatter
 - Configure delay between requests
-
-### Single File Fetching
-
-- Fetch Open Graph data from a URL using OpenGraph.io
-- Review modal settings and perform accordingly
-- Handle errors gracefully and display feedback
 
 ## Getting Started
 
