@@ -240,14 +240,14 @@ export class OpenGraphFetcherModal extends Modal {
       const existingFrontmatter = extractFrontmatter(content);
       const frontmatterObject: Record<string, any> = existingFrontmatter || {};
 
-      // Update with new OpenGraph data
+      // Update with new OpenGraph data using configurable field names
       if (this.options.createNewProperties || !frontmatterObject.url) {
         frontmatterObject.url = url;
-        frontmatterObject.title = data.title || '';
-        frontmatterObject.description = data.description || '';
-        frontmatterObject.image = data.image || null;
+        frontmatterObject[this.settings.titleFieldName] = data.title || '';
+        frontmatterObject[this.settings.descriptionFieldName] = data.description || '';
+        frontmatterObject[this.settings.imageFieldName] = data.image || null;
         if (this.options.updateFetchDate) {
-          frontmatterObject.fetchDate = new Date().toISOString();
+          frontmatterObject[this.settings.fetchDateFieldName] = new Date().toISOString();
         }
       }
 

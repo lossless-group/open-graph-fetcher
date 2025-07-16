@@ -10,6 +10,11 @@ export interface OpenGraphSettings {
     backoffDelay: number;
     rateLimit: number;
     cacheDuration: number;
+    // Field name mappings
+    titleFieldName: string;
+    descriptionFieldName: string;
+    imageFieldName: string;
+    fetchDateFieldName: string;
 }
 
 export const DEFAULT_SETTINGS: OpenGraphSettings = {
@@ -19,7 +24,12 @@ export const DEFAULT_SETTINGS: OpenGraphSettings = {
     retries: 3,
     backoffDelay: 1000,
     rateLimit: 60,
-    cacheDuration: 86400 // 24 hours
+    cacheDuration: 86400, // 24 hours
+    // Default field names
+    titleFieldName: 'og_title',
+    descriptionFieldName: 'og_description',
+    imageFieldName: 'og_image',
+    fetchDateFieldName: 'og_last_fetch'
 };
 
 export class OpenGraphSettingTab extends PluginSettingTab {
@@ -93,6 +103,61 @@ export class OpenGraphSettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.rateLimit)
                 .onChange(async (value: number) => {
                     this.plugin.settings.rateLimit = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Field name mappings section
+        containerEl.createEl('h3', { text: 'Field Name Mappings' });
+        const fieldMappingDesc = containerEl.createEl('p', { 
+            text: 'Customize the field names used in your frontmatter for OpenGraph metadata.'
+        });
+        fieldMappingDesc.addClass('setting-item-description');
+
+        // Title field name
+        new Setting(containerEl)
+            .setName('Title Field Name')
+            .setDesc('Field name for the OpenGraph title')
+            .addText(text => text
+                .setPlaceholder('og_title')
+                .setValue(this.plugin.settings.titleFieldName)
+                .onChange(async (value) => {
+                    this.plugin.settings.titleFieldName = value || 'og_title';
+                    await this.plugin.saveSettings();
+                }));
+
+        // Description field name
+        new Setting(containerEl)
+            .setName('Description Field Name')
+            .setDesc('Field name for the OpenGraph description')
+            .addText(text => text
+                .setPlaceholder('og_description')
+                .setValue(this.plugin.settings.descriptionFieldName)
+                .onChange(async (value) => {
+                    this.plugin.settings.descriptionFieldName = value || 'og_description';
+                    await this.plugin.saveSettings();
+                }));
+
+        // Image field name
+        new Setting(containerEl)
+            .setName('Image Field Name')
+            .setDesc('Field name for the OpenGraph image URL')
+            .addText(text => text
+                .setPlaceholder('og_image')
+                .setValue(this.plugin.settings.imageFieldName)
+                .onChange(async (value) => {
+                    this.plugin.settings.imageFieldName = value || 'og_image';
+                    await this.plugin.saveSettings();
+                }));
+
+        // Fetch date field name
+        new Setting(containerEl)
+            .setName('Fetch Date Field Name')
+            .setDesc('Field name for the last fetch timestamp')
+            .addText(text => text
+                .setPlaceholder('og_last_fetch')
+                .setValue(this.plugin.settings.fetchDateFieldName)
+                .onChange(async (value) => {
+                    this.plugin.settings.fetchDateFieldName = value || 'og_last_fetch';
                     await this.plugin.saveSettings();
                 }));
 

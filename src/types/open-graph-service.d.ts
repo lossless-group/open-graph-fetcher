@@ -8,6 +8,11 @@ export interface PluginSettings {
   backoffDelay: number;
   rateLimit: number;
   cacheDuration: number;
+  // Field name mappings
+  titleFieldName: string;
+  descriptionFieldName: string;
+  imageFieldName: string;
+  fetchDateFieldName: string;
 }
 
 export interface OpenGraphData {
