@@ -1,6 +1,8 @@
-import { Plugin } from 'obsidian';
+// open-graph-fetcher/src/settings/settings.ts
+import { App, PluginSettingTab, Setting } from 'obsidian';
+import OpenGraphPlugin from '../../main';
 
-export interface OpenGraphPluginSettings {
+export interface OpenGraphSettings {
     apiKey: string;
     baseUrl: string;
     retries: number;
@@ -9,57 +11,83 @@ export interface OpenGraphPluginSettings {
     cacheDuration: number;
 }
 
-export interface DefaultSettings extends OpenGraphPluginSettings {
-    apiKey: string;
-}
+export const DEFAULT_SETTINGS: OpenGraphSettings = {
+    apiKey: '',
+    baseUrl: 'https://api.opengraph.io',
+    retries: 3,
+    backoffDelay: 1000,
+    rateLimit: 60,
+    cacheDuration: 86400 // 24 hours
+};
 
-export class OpenGraphSettings {
-    private readonly plugin: Plugin;
-    private settings: OpenGraphPluginSettings;
-    private defaults: DefaultSettings;
+export class OpenGraphSettingTab extends PluginSettingTab {
+    plugin: OpenGraphPlugin;
 
-    constructor(plugin: Plugin) {
+    constructor(app: App, plugin: OpenGraphPlugin) {
+        super(app, plugin);
         this.plugin = plugin;
-        this.defaults = {
-            apiKey: '',
-            baseUrl: 'https://api.opengraph.io',
-            retries: 3,
-            backoffDelay: 1000,
-            rateLimit: 60,
-            cacheDuration: 86400 // 24 hours
-        };
-        
-        // Initialize settings with defaults
-        this.settings = Object.assign({}, this.defaults);
     }
 
-    async loadSettings(): Promise<void> {
-        try {
-            const savedSettings = this.plugin.loadData();
-            // Ensure all required fields are present
-            this.settings = Object.assign({}, this.defaults, savedSettings);
-        } catch (error) {
-            console.error('Error loading settings:', error);
-            this.settings = Object.assign({}, this.defaults);
-        }
-    }
+    display(): void {
+        const { containerEl } = this;
+        containerEl.empty();
 
-    saveSettings(): void {
-        try {
-            this.plugin.saveData(this.settings);
-        } catch (error) {
-            console.error('Error saving settings:', error);
-        }
-    }
+        containerEl.createEl('h2', { text: 'OpenGraph Fetcher Settings' });
 
-    getSettings(): OpenGraphPluginSettings {
-        return { ...this.settings };
-    }
+        // API Key setting
+        new Setting(containerEl)
+            .setName('OpenGraph.io API Key')
+            .setDesc('Enter your OpenGraph.io API key. Get your key from https://www.opengraph.io/')
+            .addText(text => text
+                .setPlaceholder('Enter your API key')
+                .setValue(this.plugin.settings.apiKey)
+                .onChange(async (value) => {
+                    this.plugin.settings.apiKey = value;
+                    await this.plugin.saveSettings();
+                }));
 
-    updateSetting<K extends keyof OpenGraphPluginSettings>(key: K, value: OpenGraphPluginSettings[K]): void {
-        if (key in this.settings) {
-            this.settings[key] = value;
-            this.saveSettings();
-        }
+        // Base URL setting
+        new Setting(containerEl)
+            .setName('Base URL')
+            .setDesc('OpenGraph.io API base URL')
+            .addText(text => text
+                .setPlaceholder('https://api.opengraph.io')
+                .setValue(this.plugin.settings.baseUrl)
+                .onChange(async (value) => {
+                    this.plugin.settings.baseUrl = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Retries setting
+        new Setting(containerEl)
+            .setName('Retries')
+            .setDesc('Number of retry attempts for failed requests')
+            .addSlider(slider => slider
+                .setLimits(1, 10, 1)
+                .setValue(this.plugin.settings.retries)
+                .onChange(async (value: number) => {
+                    this.plugin.settings.retries = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Rate limit setting
+        new Setting(containerEl)
+            .setName('Rate Limit')
+            .setDesc('Maximum requests per minute')
+            .addSlider(slider => slider
+                .setLimits(10, 120, 10)
+                .setValue(this.plugin.settings.rateLimit)
+                .onChange(async (value: number) => {
+                    this.plugin.settings.rateLimit = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Status message
+        const statusEl = containerEl.createEl('div', { 
+            text: this.plugin.settings.apiKey 
+                ? '✅ API key configured'
+                : '⚠️ No API key configured - some features may be limited'
+        });
+        statusEl.addClass('setting-item-description');
     }
 }

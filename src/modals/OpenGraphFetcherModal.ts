@@ -11,7 +11,7 @@ interface ModalOptions {
   batchDelay: number;
 }
 
-interface OpenGraphPlugin extends Plugin {
+interface OpenGraphPlugin {
   settings: PluginSettings;
 }
 

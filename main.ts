@@ -1,27 +1,9 @@
 import { Notice, Plugin, Editor } from 'obsidian';
 import { OpenGraphFetcherModal } from './src/modals/OpenGraphFetcherModal';
-import { OpenGraphPluginSettingsTab } from './src/settings/settings-tab';
-
-interface OpenGraphPluginSettings {
-    apiKey: string;
-    baseUrl: string;
-    retries: number;
-    backoffDelay: number;
-    rateLimit: number;
-    cacheDuration: number;
-}
-
-const DEFAULT_SETTINGS: OpenGraphPluginSettings = {
-    apiKey: '',
-    baseUrl: 'https://api.opengraph.io',
-    retries: 3,
-    backoffDelay: 1000,
-    rateLimit: 60,
-    cacheDuration: 86400 // 24 hours
-};
+import { OpenGraphSettingTab, DEFAULT_SETTINGS, type OpenGraphSettings } from './src/settings/settings';
 
 export default class OpenGraphPlugin extends Plugin {
-    settings: OpenGraphPluginSettings = DEFAULT_SETTINGS;
+    settings!: OpenGraphSettings;
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -29,7 +11,7 @@ export default class OpenGraphPlugin extends Plugin {
         // Add ribbon icon
         const ribbonIconEl = this.addRibbonIcon(
             'external-link',
-            'Fetch OpenGraph Data',
+            'Fetcher OpenGraph Data',
             () => {
                 new Notice('OpenGraph Fetcher is ready!');
             }
@@ -37,28 +19,18 @@ export default class OpenGraphPlugin extends Plugin {
         ribbonIconEl.addClass('open-graph-fetcher-ribbon-icon');
 
         // This adds a settings tab so the user can configure various aspects of the plugin
-        this.addSettingTab(new OpenGraphPluginSettingsTab(this.app, this));
+        this.addSettingTab(new OpenGraphSettingTab(this.app, this));
 
         // Register commands
         this.registerCommands();
     }
 
     async loadSettings(): Promise<void> {
-        const data = await this.loadData();
-        if (data) {
-            this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
-        } else {
-            this.settings = DEFAULT_SETTINGS;
-        }
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     }
 
     async saveSettings(): Promise<void> {
-        try {
-            await this.saveData(this.settings);
-        } catch (error) {
-            console.error('Failed to save settings:', error);
-            new Notice('Failed to save settings');
-        }
+        await this.saveData(this.settings);
     }
 
     private registerCommands(): void {
