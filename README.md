@@ -6,6 +6,23 @@
 
 An Obsidian plugin that allows you to fetch Open Graph data from a URL using OpenGraph.io.
 
+## Features
+
+### Batch Fetching
+
+- Select multiple files to process at once
+- Pause and resume processing
+- Skip files with existing Open Graph data
+- Update fetch date for processed files
+- Write errors to YAML frontmatter
+- Configure delay between requests
+
+### Single File Fetching
+
+- Fetch Open Graph data from a URL using OpenGraph.io
+- Review modal settings and perform accordingly
+- Handle errors gracefully and display feedback
+
 ## Getting Started
 
 ```
