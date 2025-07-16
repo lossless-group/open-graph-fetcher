@@ -1,6 +1,4 @@
-***
 ![Open Graph Fetcher Obsidian Plugin Banner Image](https://i.imgur.com/0v6sPkv.png)
-***
 
 # Open Graph Fetcher Obsidian Plugin
 
