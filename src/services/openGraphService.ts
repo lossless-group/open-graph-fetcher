@@ -49,20 +49,25 @@ export class OpenGraphService {
 
         const data = await response.json();
         
-        // Validate response structure
-        if (!data.openGraph) {
-          throw new Error('Invalid API response: missing openGraph data');
+        // Validate response structure - check for any available data source
+        if (!data.hybridGraph && !data.openGraph && !data.htmlInferred) {
+          throw new Error('Invalid API response: missing metadata');
         }
         
-        // Extract and normalize OpenGraph data
+        // Use hybridGraph as primary source, with fallbacks to openGraph and htmlInferred
+        const hybrid = data.hybridGraph || {};
+        const og = data.openGraph || {};
+        const inferred = data.htmlInferred || {};
+        
+        // Extract and normalize OpenGraph data using priority: hybridGraph > openGraph > htmlInferred
         const ogData: OpenGraphData = {
-          title: data.openGraph.title || '',
-          description: data.openGraph.description || '',
-          image: data.openGraph.image?.url || data.openGraph.image || '',
-          favicon: data.favicon || data.openGraph.favicon || null,
-          url: data.openGraph.url || url,
-          site_name: data.openGraph.site_name || '',
-          type: data.openGraph.type || '',
+          title: hybrid.title || og.title || inferred.title || '',
+          description: hybrid.description || og.description || inferred.description || '',
+          image: hybrid.image || og.image?.url || og.image || inferred.image || '',
+          favicon: hybrid.favicon || og.favicon || inferred.favicon || data.favicon || null,
+          url: hybrid.url || og.url || inferred.url || url,
+          site_name: hybrid.site_name || og.site_name || inferred.site_name || '',
+          type: hybrid.type || og.type || inferred.type || '',
           date: new Date().toISOString()
         };
         
