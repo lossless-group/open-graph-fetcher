@@ -3,9 +3,9 @@ import process from 'node:process';
 import builtins from 'builtin-modules';
 
 const banner = `/*
- * Content Farm Plugin for Obsidian
+ * Open Graph Fetcher
  * Generated: ${new Date().toISOString()}
- * Build: ${process.env.NODE_ENV || 'development'}
+ * Build: ${process.env.NODE_ENV || 'master'}
  */`;
 
 const isProduction = process.argv[2] === 'production' || process.env.NODE_ENV === 'production';
@@ -50,7 +50,7 @@ const context = await esbuild.context({
   sourcemap: !isProduction ? 'inline' : false,
   minify: isProduction,
   define: {
-    'process.env.NODE_ENV': `"${isProduction ? 'production' : 'development'}"`,
+    'process.env.NODE_ENV': `"${isProduction ? 'production' : 'master'}"`,
   },
   logLevel: 'info',
   outfile: 'main.js',
