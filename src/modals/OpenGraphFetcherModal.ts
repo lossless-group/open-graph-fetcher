@@ -21,6 +21,7 @@ export class OpenGraphFetcherModal extends Modal {
   private statusEl: HTMLElement | null = null;
   private progressBar: HTMLProgressElement | null = null;
   private processing: boolean = false;
+  private cancelButton: HTMLButtonElement | null = null;
 
   constructor(app: App, plugin: OpenGraphPlugin) {
     super(app);
@@ -96,11 +97,11 @@ export class OpenGraphFetcherModal extends Modal {
       this.fetchMetadata();
     };
     
-    const cancelButton = buttonContainer.createEl('button', { 
+    this.cancelButton = buttonContainer.createEl('button', { 
       text: 'Cancel',
       cls: 'mod-cta-outline opengraph-cancel-btn'
     });
-    cancelButton.onclick = () => {
+    this.cancelButton.onclick = () => {
       this.close();
     };
     
@@ -156,6 +157,13 @@ export class OpenGraphFetcherModal extends Modal {
         this.progressBar.value = 100;
       }
       this.statusEl?.setText('OpenGraph data fetched successfully!');
+      
+      // Change Cancel button to Done with CTA styling after successful response
+      if (this.cancelButton) {
+        this.cancelButton.textContent = 'Done';
+        this.cancelButton.removeClass('mod-cta-outline');
+        this.cancelButton.addClass('mod-cta');
+      }
     } catch (error: unknown) {
       if (error instanceof OpenGraphServiceError) {
         this.statusEl?.setText(`Error processing ${url}: ${error.message}`);
