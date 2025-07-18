@@ -73,8 +73,7 @@ export class BatchOpenGraphFetcherModal extends Modal {
   async onOpen(): Promise<void> {
     const contentEl = this.contentEl as unknown as ObsidianHTMLElement;
     contentEl.empty();
-    contentEl.addClass('batch-opengraph-fetcher-modal');
-    this.containerEl.addClass('batch-opengraph-fetcher-modal');
+    contentEl.addClass('opengraph-fetcher-modal');
     
     await this.createHeader(contentEl);
     await this.createDirectorySection(contentEl);
@@ -94,70 +93,87 @@ export class BatchOpenGraphFetcherModal extends Modal {
   }
 
   private async createHeader(contentEl: ObsidianHTMLElement): Promise<void> {
-    const header = contentEl.createDiv('batch-opengraph-header');
+    const header = contentEl.createDiv('opengraph-header');
     header.createEl('h2', { 
       text: 'Batch OpenGraph Fetcher', 
-      cls: 'batch-opengraph-title' 
-    });
-    header.createEl('p', { 
-      text: 'Process multiple files with missing OpenGraph data in the target directory.',
-      cls: 'batch-opengraph-description'
+      cls: 'opengraph-title' 
     });
   }
 
   private async createDirectorySection(contentEl: ObsidianHTMLElement): Promise<void> {
-    const section = contentEl.createDiv('batch-directory-section');
-    section.createEl('h3', { text: 'Target Directory' });
+    const section = contentEl.createDiv('opengraph-options-container');
+    const optionsTable = section.createEl('table', { cls: 'opengraph-options-table' });
     
-    this.directoryEl = section.createDiv('batch-directory-info');
+    // Directory row
+    const dirRow = optionsTable.createEl('tr', { cls: 'opengraph-option-row' });
+    dirRow.createEl('td', { text: 'Target Directory:', cls: 'opengraph-label-cell' });
     
-    const refreshButton = section.createEl('button', { 
-      text: 'Refresh Directory Scan',
-      cls: 'batch-refresh-button'
+    const dirCell = dirRow.createEl('td');
+    this.directoryEl = dirCell.createDiv('opengraph-directory-info');
+    
+    const refreshButton = dirCell.createEl('button', { 
+      text: 'Refresh Scan',
+      cls: 'mod-cta opengraph-fetch-btn'
     });
     refreshButton.onclick = () => this.scanCurrentDirectory();
   }
 
   private async createFileListSection(contentEl: ObsidianHTMLElement): Promise<void> {
-    const section = contentEl.createDiv('batch-file-list-section');
-    const header = section.createDiv('batch-file-list-header');
-    header.createEl('h3', { text: 'Eligible Files' });
+    const section = contentEl.createDiv('opengraph-file-section');
     
-    const controls = header.createDiv('batch-file-controls');
+    // File list header with controls
+    const header = section.createDiv('opengraph-file-header');
+    header.createEl('h3', { text: 'Eligible Files', cls: 'opengraph-subtitle' });
+    
+    const controls = header.createDiv('opengraph-file-controls');
     const selectAllBtn = controls.createEl('button', { 
       text: 'Select All',
-      cls: 'batch-select-button'
+      cls: 'mod-cta opengraph-fetch-btn'
     });
     const deselectAllBtn = controls.createEl('button', { 
       text: 'Deselect All',
-      cls: 'batch-select-button'
+      cls: 'mod-cta-outline opengraph-cancel-btn'
     });
     
     selectAllBtn.onclick = () => this.selectAllFiles();
     deselectAllBtn.onclick = () => this.deselectAllFiles();
     
-    this.fileListEl = section.createDiv('batch-file-list');
+    this.fileListEl = section.createDiv('opengraph-file-list');
   }
 
   private createOptionsSection(contentEl: ObsidianHTMLElement): void {
-    const section = contentEl.createDiv('batch-options-section');
-    section.createEl('h3', { text: 'Processing Options' });
+    const section = contentEl.createDiv('opengraph-options-section');
+    section.createEl('h3', { text: 'Processing Options', cls: 'opengraph-subtitle' });
     
-    const optionsGrid = section.createDiv('batch-options-grid');
+    const optionsTable = section.createEl('table', { cls: 'opengraph-options-table' });
+    const optionsGrid = optionsTable.createEl('tbody');
     
     // Create checkbox options
     const createCheckbox = (key: keyof BatchOptions, label: string, description: string) => {
-      const container = optionsGrid.createDiv('batch-option-item');
-      const checkbox = container.createEl('input', { type: 'checkbox' });
-      checkbox.checked = this.options[key] as boolean;
+      const row = optionsGrid.createEl('tr', { cls: 'opengraph-option-row' });
+      const checkboxCell = row.createEl('td', { cls: 'opengraph-checkbox-cell' });
+      const labelCell = row.createEl('td', { cls: 'opengraph-label-cell' });
+      
+      const container = labelCell.createDiv('opengraph-option-container');
+      const checkbox = checkboxCell.createEl('input', {
+        type: 'checkbox',
+        cls: 'opengraph-checkbox'
+      });
+      checkbox.checked = Boolean(this.options[key]);
       checkbox.onchange = () => {
         (this.options[key] as boolean) = checkbox.checked;
       };
       
-      const labelEl = container.createEl('label');
-      labelEl.appendChild(checkbox);
-      labelEl.createSpan({ text: label, cls: 'batch-option-label' });
-      container.createDiv({ text: description, cls: 'batch-option-description' });
+      container.createEl('label', {
+        text: label,
+        cls: 'opengraph-option-label'
+      });
+      if (description) {
+        container.createEl('div', {
+          text: description,
+          cls: 'opengraph-option-description'
+        });
+      }
     };
 
     createCheckbox('overwriteExisting', 'Overwrite Existing Data', 'Replace existing OpenGraph fields');
@@ -182,31 +198,31 @@ export class BatchOpenGraphFetcherModal extends Modal {
   }
 
   private createProgressSection(contentEl: ObsidianHTMLElement): void {
-    const section = contentEl.createDiv('batch-progress-section');
-    section.createEl('h3', { text: 'Progress' });
+    const section = contentEl.createDiv('opengraph-progress-section');
     
-    this.progressBar = section.createEl('progress', { cls: 'batch-progress-bar' });
+    this.statusEl = section.createDiv('opengraph-status');
+    
+    this.progressBar = section.createEl('progress', {
+      cls: 'opengraph-progress',
+      value: '0'
+    });
     this.progressBar.max = 100;
-    this.progressBar.value = 0;
-    
-    this.progressEl = section.createDiv('batch-progress-info');
-    this.statusEl = section.createDiv('batch-status-info');
     
     this.updateProgressDisplay();
   }
 
   private createButtonSection(contentEl: ObsidianHTMLElement): void {
-    const section = contentEl.createDiv('batch-button-section');
+    const section = contentEl.createDiv('opengraph-button-container');
     
-    this.processButton = section.createEl('button', { 
-      text: 'Process Selected Files',
-      cls: 'batch-process-button'
+    this.processButton = section.createEl('button', {
+      text: 'Start Processing',
+      cls: 'mod-cta opengraph-fetch-btn'
     });
     this.processButton.onclick = () => this.startBatchProcessing();
     
-    this.cancelButton = section.createEl('button', { 
+    this.cancelButton = section.createEl('button', {
       text: 'Cancel',
-      cls: 'batch-cancel-button'
+      cls: 'mod-cta-outline opengraph-cancel-btn'
     });
     this.cancelButton.onclick = () => this.cancelProcessing();
     this.cancelButton.disabled = true;

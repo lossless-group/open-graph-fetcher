@@ -1,7 +1,7 @@
 {
 	"id": "open-graph-fetcher",
 	"name": "Open Graph Fetcher",
-	"version": "0.1.1",
+	"version": "0.1.12",
 	"minAppVersion": "1.8.10",
 	"description": "A plugin for Obsidian that allows you to fetch Open Graph data from a URL using OpenGraph.io.",
 	"author": "The Lossless Group",
