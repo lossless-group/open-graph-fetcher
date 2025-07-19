@@ -2,6 +2,7 @@ import { Modal, App } from 'obsidian';
 import { OpenGraphService, OpenGraphServiceError } from '../services/openGraphService';
 import { PluginSettings, OpenGraphData } from '../types/open-graph-service';
 import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
+import Typed from 'typed.js';
 
 interface ModalOptions {
   overwriteExisting: boolean;
@@ -22,6 +23,10 @@ export class OpenGraphFetcherModal extends Modal {
   private progressBar: HTMLProgressElement | null = null;
   private processing: boolean = false;
   private cancelButton: HTMLButtonElement | null = null;
+  private animationFrameId: number | null = null;
+  private progressIntervalId: number | null = null;
+  private loadingMessageIntervalId: number | null = null;
+  private typedInstance: Typed | null = null;
 
   constructor(app: App, plugin: OpenGraphPlugin) {
     super(app);
@@ -60,7 +65,11 @@ export class OpenGraphFetcherModal extends Modal {
       checkbox.checked = this.options[optionKey] as boolean;
       checkbox.onchange = (e: Event) => {
         const target = e.target as HTMLInputElement;
-        (this.options[optionKey] as boolean) = target.checked;
+        const newValue = target.checked;
+        (this.options[optionKey] as boolean) = newValue;
+        
+        // Prevent both overwriteExisting and createNewProperties from being unchecked
+        this.handleCheckboxLogic(optionKey, newValue);
       };
       
       const label = labelCell.createEl('label', { 
@@ -71,8 +80,8 @@ export class OpenGraphFetcherModal extends Modal {
       checkbox.id = optionKey;
     };
 
-    createCheckboxOption('Overwrite Existing', 'overwriteExisting');
-    createCheckboxOption('Create new YAML properties if none exists?', 'createNewProperties');
+    createCheckboxOption('Overwrite Existing OpenGraph Data', 'overwriteExisting');
+    createCheckboxOption('Create New YAML Properties if None Exist', 'createNewProperties');
     createCheckboxOption('Write Errors', 'writeErrors');
     createCheckboxOption('Update Fetch Date', 'updateFetchDate');
 
@@ -111,13 +120,250 @@ export class OpenGraphFetcherModal extends Modal {
   onClose(): void {
     this.clearEventListeners();
     this.processing = false;
+    // Cancel any ongoing animation
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    // Clear any ongoing progress interval
+    if (this.progressIntervalId) {
+      clearInterval(this.progressIntervalId);
+      this.progressIntervalId = null;
+    }
+    // Clear any ongoing loading message interval
+    this.stopLoadingMessages();
+  }
+
+  /**
+   * Creative loading messages to cycle through while fetching
+   */
+  private readonly loadingMessages: string[] = [
+    "Plucking the ripe OpenGraph data...",
+    "Brewing a fresh cup of metadata...",
+    "Summoning the digital spirits of the web...",
+    "Decoding the ancient hieroglyphs of HTML...",
+    "Teaching robots to read between the lines...",
+    "Mining digital gold from the information superhighway...",
+    "Consulting the oracle of structured data...",
+    "Wrangling wild metadata into submission...",
+    "Casting spells to extract hidden treasures...",
+    "Navigating the labyrinth of web standards...",
+    "Harvesting the fruits of the semantic web...",
+    "Unleashing the power of the OpenGraph protocol..."
+  ];
+
+  /**
+   * Start cycling through loading messages with typing animation
+   */
+  private startLoadingMessages(): void {
+    if (!this.statusEl) return;
+    
+    // Clear any existing typed instance
+    if (this.typedInstance) {
+      this.typedInstance.destroy();
+      this.typedInstance = null;
+    }
+    
+    // Create a span element for the typing animation
+    this.statusEl.empty();
+    const typingElement = this.statusEl.createEl('span', { cls: 'typing-element' });
+    
+    // Initialize typed.js with the loading messages
+    this.typedInstance = new Typed(typingElement, {
+      strings: this.loadingMessages,
+      typeSpeed: 25,
+      backSpeed: 30,
+      backDelay: 1000,
+      loop: true,
+      showCursor: true,
+      cursorChar: '|',
+      autoInsertCss: false,
+      smartBackspace: true,
+      fadeOut: false,
+      fadeOutClass: 'typed-fade-out',
+      fadeOutDelay: 500,
+      onStringTyped: () => {
+        // Optional callback when a string is fully typed
+      },
+      onReset: () => {
+        // Optional callback when typing is reset
+      }
+    });
+  }
+
+  /**
+   * Stop cycling loading messages and clean up typed instance
+   */
+  private stopLoadingMessages(): void {
+    // Clear any ongoing interval
+    if (this.loadingMessageIntervalId) {
+      clearInterval(this.loadingMessageIntervalId);
+      this.loadingMessageIntervalId = null;
+    }
+    
+    // Destroy typed instance
+    if (this.typedInstance) {
+      this.typedInstance.destroy();
+      this.typedInstance = null;
+    }
+  }
+
+  /**
+   * Handle checkbox logic to prevent both overwriteExisting and createNewProperties from being unchecked
+   */
+  private handleCheckboxLogic(changedOption: keyof ModalOptions, newValue: boolean): void {
+    // Only handle the two specific options we care about
+    if (changedOption !== 'overwriteExisting' && changedOption !== 'createNewProperties') {
+      return;
+    }
+
+    // If the checkbox was unchecked and both would now be unchecked
+    if (!newValue && !this.options.overwriteExisting && !this.options.createNewProperties) {
+      // Check the other option to ensure at least one is checked
+      const otherOption = changedOption === 'overwriteExisting' ? 'createNewProperties' : 'overwriteExisting';
+      this.options[otherOption] = true;
+      
+      // Update the UI to reflect the change
+      const otherCheckbox = document.getElementById(otherOption) as HTMLInputElement;
+      if (otherCheckbox) {
+        otherCheckbox.checked = true;
+      }
+    }
+  }
+
+  /**
+   * Write error information to the file's frontmatter
+   */
+  private async writeErrorToFrontmatter(url: string, errorMessage: string, error: unknown): Promise<void> {
+    try {
+      const file = this.app.workspace.getActiveFile();
+      if (!file) return;
+
+      const content = await this.app.vault.read(file);
+      const existingFrontmatter = extractFrontmatter(content);
+      const frontmatterObject: Record<string, any> = existingFrontmatter || {};
+
+      // Add error information
+      frontmatterObject.og_error = errorMessage;
+      frontmatterObject.og_error_timestamp = new Date().toISOString();
+      
+      // Add error code if available
+      if (error instanceof OpenGraphServiceError) {
+        frontmatterObject.og_error_code = error.code;
+      }
+
+      // Ensure URL is present
+      if (!frontmatterObject.url) {
+        frontmatterObject.url = url;
+      }
+
+      // Format and update frontmatter
+      const newFrontmatter = formatFrontmatter(frontmatterObject);
+      
+      // Replace or add frontmatter
+      const newContent = content.replace(/---\n(.*?)\n---/s, `---\n${newFrontmatter}\n---`);
+      const finalContent = newContent.startsWith('---') ? newContent : `---\n${newFrontmatter}\n---\n${content}`;
+      
+      await this.app.vault.modify(file, finalContent);
+    } catch (writeError) {
+      console.error('Failed to write error to frontmatter:', writeError);
+    }
+  }
+
+  /**
+   * Smoothly animate the progress bar to a target value
+   */
+  private animateProgressTo(targetValue: number, duration: number = 500): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.progressBar) {
+        resolve();
+        return;
+      }
+
+      const startValue = this.progressBar.value;
+      const startTime = performance.now();
+      const valueChange = targetValue - startValue;
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Use ease-out cubic function for smooth animation
+        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+        const currentValue = startValue + (valueChange * easeOutCubic);
+        
+        this.progressBar!.value = currentValue;
+        
+        if (progress < 1) {
+          this.animationFrameId = requestAnimationFrame(animate);
+        } else {
+          this.progressBar!.value = targetValue;
+          this.animationFrameId = null;
+          resolve();
+        }
+      };
+
+      this.animationFrameId = requestAnimationFrame(animate);
+    });
+  }
+
+  /**
+   * Animate progress bar incrementally by 10% every 2 seconds, stopping at 90%
+   */
+  private startIncrementalProgress(): void {
+    if (!this.progressBar) return;
+
+    let currentProgress = 0;
+    const increment = 10;
+    const interval = 2000; // 2 seconds
+
+    const progressInterval = setInterval(() => {
+      if (!this.processing || currentProgress >= 90) {
+        clearInterval(progressInterval);
+        return;
+      }
+
+      currentProgress += increment;
+      if (currentProgress > 90) currentProgress = 90;
+      
+      this.animateProgressTo(currentProgress, 300); // Quick 300ms animation for each increment
+    }, interval);
+
+    // Store the interval ID for cleanup
+    this.progressIntervalId = progressInterval;
+  }
+
+  /**
+   * Complete the progress bar animation to 100%
+   */
+  private completeProgress(): Promise<void> {
+    // Clear any ongoing incremental progress
+    if (this.progressIntervalId) {
+      clearInterval(this.progressIntervalId);
+      this.progressIntervalId = null;
+    }
+    
+    // Animate to 100%
+    return this.animateProgressTo(100, 600);
   }
 
   private async fetchMetadata(): Promise<void> {
     if (this.processing) return;
 
+    // Validate that at least one action can be performed
+    if (!this.options.overwriteExisting && !this.options.createNewProperties) {
+      this.statusEl?.setText('Error: At least one action must be enabled (Overwrite Existing or Create New Properties)');
+      return;
+    }
+
     this.processing = true;
-    this.statusEl?.setText('Extracting URL from current file...');
+    
+    // Reset progress bar to 0
+    if (this.progressBar) {
+      this.progressBar.value = 0;
+    }
+    
+    // this.statusEl?.setText('Extracting URL from current file...');
     
     // Get the currently active file
     const activeFile = this.app.workspace.getActiveFile();
@@ -145,18 +391,23 @@ export class OpenGraphFetcherModal extends Modal {
     if (!this.processing) return;
 
     try {
-      this.statusEl?.setText('Fetching OpenGraph data...');
-      if (this.progressBar instanceof HTMLProgressElement) {
-        this.progressBar.value = 50;
-      }
+      // Start cycling loading messages
+      this.startLoadingMessages();
+      
+      // Start incremental progress (10% every 2 seconds, stops at 90%)
+      this.startIncrementalProgress();
       
       const data = await this.service.fetchMetadata(url, this.settings);
+      
+      // Stop loading messages before processing metadata
+      this.stopLoadingMessages();
+      
       await this.processMetadata(url, data);
       
-      if (this.progressBar instanceof HTMLProgressElement) {
-        this.progressBar.value = 100;
-      }
-      this.statusEl?.setText('OpenGraph data fetched successfully!');
+      // Complete the progress to 100%
+      await this.completeProgress();
+      
+      this.statusEl?.setText(`Successfully fetched and updated OpenGraph data for ${url}`);
       
       // Change Cancel button to Done with CTA styling after successful response
       if (this.cancelButton) {
@@ -165,11 +416,18 @@ export class OpenGraphFetcherModal extends Modal {
         this.cancelButton.addClass('mod-cta');
       }
     } catch (error: unknown) {
-      if (error instanceof OpenGraphServiceError) {
-        this.statusEl?.setText(`Error processing ${url}: ${error.message}`);
-      } else {
-        console.error('Unexpected error:', error);
-        this.statusEl?.setText('Unexpected error occurred');
+      // Stop loading messages on error
+      this.stopLoadingMessages();
+      
+      const errorMessage = error instanceof OpenGraphServiceError 
+        ? error.message 
+        : 'Unexpected error occurred';
+      
+      this.statusEl?.setText(`Error processing ${url}: ${errorMessage}`);
+      
+      // Write error to frontmatter if enabled
+      if (this.options.writeErrors) {
+        await this.writeErrorToFrontmatter(url, errorMessage, error);
       }
     } finally {
       this.processing = false;
@@ -200,16 +458,41 @@ export class OpenGraphFetcherModal extends Modal {
       // Update with new OpenGraph data using configurable field names
       if (this.options.createNewProperties || !frontmatterObject.url) {
         frontmatterObject.url = url;
+      }
+
+      // Handle title field - only add if createNewProperties is enabled, or overwrite if enabled
+      if ((this.options.createNewProperties && !frontmatterObject[this.settings.titleFieldName]) || 
+          (this.options.overwriteExisting && frontmatterObject[this.settings.titleFieldName])) {
         frontmatterObject[this.settings.titleFieldName] = data.title || '';
+      }
+
+      // Handle description field - only add if createNewProperties is enabled, or overwrite if enabled
+      if ((this.options.createNewProperties && !frontmatterObject[this.settings.descriptionFieldName]) || 
+          (this.options.overwriteExisting && frontmatterObject[this.settings.descriptionFieldName])) {
         frontmatterObject[this.settings.descriptionFieldName] = data.description || '';
+      }
+
+      // Handle image field - only add if createNewProperties is enabled, or overwrite if enabled
+      if ((this.options.createNewProperties && !frontmatterObject[this.settings.imageFieldName]) || 
+          (this.options.overwriteExisting && frontmatterObject[this.settings.imageFieldName])) {
         frontmatterObject[this.settings.imageFieldName] = data.image || null;
-        // Add favicon to frontmatter if available
-        if (data.favicon && (this.options.createNewProperties || !frontmatterObject[this.settings.faviconFieldName])) {
-          frontmatterObject[this.settings.faviconFieldName] = data.favicon;
-        }
-        if (this.options.updateFetchDate) {
-          frontmatterObject[this.settings.fetchDateFieldName] = new Date().toISOString();
-        }
+      }
+
+      // Handle favicon field - only add if createNewProperties is enabled, or overwrite if enabled
+      if (data.favicon && ((this.options.createNewProperties && !frontmatterObject[this.settings.faviconFieldName]) || 
+          (this.options.overwriteExisting && frontmatterObject[this.settings.faviconFieldName]))) {
+        frontmatterObject[this.settings.faviconFieldName] = data.favicon;
+      }
+
+      // Handle fetch date - always update if enabled
+      if (this.options.updateFetchDate) {
+        frontmatterObject[this.settings.fetchDateFieldName] = new Date().toISOString();
+      }
+
+      // Clear any previous errors if this is a successful operation
+      if (frontmatterObject.og_error) {
+        delete frontmatterObject.og_error;
+        delete frontmatterObject.og_error_timestamp;
       }
 
       // Format and update frontmatter
@@ -226,7 +509,7 @@ export class OpenGraphFetcherModal extends Modal {
       
       await this.app.vault.modify(file, finalContent);
       
-      this.statusEl?.setText(`Successfully updated ${url}`);
+      // Status message will be set in processCurrentFile after completion
     } catch (error: unknown) {
       console.error('Error processing metadata:', error);
       if (error instanceof OpenGraphServiceError) {

@@ -51,7 +51,7 @@ export class OpenGraphSettingTab extends PluginSettingTab {
         // API Key setting
         new Setting(containerEl)
             .setName('OpenGraph.io API Key')
-            .setDesc('Enter your OpenGraph.io API key. Get your key from https://www.opengraph.io/')
+            .setDesc('Enter your OpenGraph.io API key. Get your free key from https://www.opengraph.io/')
             .addText(text => text
                 .setPlaceholder('Enter your API key')
                 .setValue(this.plugin.settings.apiKey)
@@ -179,8 +179,13 @@ export class OpenGraphSettingTab extends PluginSettingTab {
         const statusEl = containerEl.createEl('div', { 
             text: this.plugin.settings.apiKey 
                 ? '✅ API key configured'
-                : '⚠️ No API key configured - some features may be limited'
+                : '⚠️ No API key configured - OpenGraph fetching will not work'
         });
         statusEl.addClass('setting-item-description');
+        
+        // Add warning styling for missing API key
+        if (!this.plugin.settings.apiKey) {
+            statusEl.addClass('setting-item-warning');
+        }
     }
 }

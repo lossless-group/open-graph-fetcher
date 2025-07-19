@@ -20,6 +20,9 @@ importers:
       obsidian:
         specifier: latest
         version: 1.8.7(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)
+      typed.js:
+        specifier: ^2.1.0
+        version: 2.1.0
       zod:
         specifier: ^4.0.5
         version: 4.0.5
@@ -1152,6 +1155,9 @@ packages:
   type-is@2.0.1:
     resolution: {integrity: sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw==}
     engines: {node: '>= 0.6'}
+
+  typed.js@2.1.0:
+    resolution: {integrity: sha512-bDuXEf7YcaKN4g08NMTUM6G90XU25CK3bh6U0THC/Mod/QPKlEt9g/EjvbYB8x2Qwr2p6J6I3NrsoYaVnY6wsQ==}
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
@@ -2332,6 +2338,8 @@ snapshots:
       content-type: 1.0.5
       media-typer: 1.1.0
       mime-types: 3.0.1
+
+  typed.js@2.1.0: {}
 
   typescript@5.8.3: {}
 

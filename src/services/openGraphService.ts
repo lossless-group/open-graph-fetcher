@@ -98,6 +98,14 @@ export class OpenGraphService {
   }
 
   async fetchMetadata(url: string, settings: PluginSettings): Promise<OpenGraphData> {
+    // Check if API key is provided
+    if (!this.apiKey || this.apiKey.trim() === '') {
+      throw new OpenGraphServiceError(
+        'No API key configured. Please add your OpenGraph.io API key in the plugin settings.',
+        'NO_API_KEY'
+      );
+    }
+
     // Check cache first
     if (this.isCacheValid(url)) {
       return this.cache.get(url)!;
@@ -124,6 +132,14 @@ export class OpenGraphService {
   }
 
   async fetchScreenshot(url: string): Promise<string> {
+    // Check if API key is provided
+    if (!this.apiKey || this.apiKey.trim() === '') {
+      throw new OpenGraphServiceError(
+        'No API key configured. Please add your OpenGraph.io API key in the plugin settings.',
+        'NO_API_KEY'
+      );
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/v1/screenshot`, {
         method: 'POST',

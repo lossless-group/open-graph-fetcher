@@ -408,6 +408,11 @@ export class BatchOpenGraphFetcherModal extends Modal {
         ? error.message 
         : 'Unknown error occurred';
       
+      // Write error to frontmatter if enabled
+      if (this.options.writeErrors) {
+        await this.writeErrorToFrontmatter(fileInfo.path, fileInfo.url, errorMessage, error);
+      }
+      
       return {
         success: false,
         error: errorMessage,
@@ -448,6 +453,13 @@ export class BatchOpenGraphFetcherModal extends Modal {
     
     if (this.options.updateFetchDate) {
       frontmatter[this.settings.fetchDateFieldName] = new Date().toISOString();
+    }
+    
+    // Clear any previous errors if this is a successful operation
+    if (frontmatter.og_error) {
+      delete frontmatter.og_error;
+      delete frontmatter.og_error_timestamp;
+      delete frontmatter.og_error_code;
     }
     
     // Restore the original tags if they existed
@@ -507,5 +519,44 @@ export class BatchOpenGraphFetcherModal extends Modal {
     );
     
     this.updateProgressDisplay();
+  }
+
+  /**
+   * Write error information to a file's frontmatter
+   */
+  private async writeErrorToFrontmatter(filePath: string, url: string, errorMessage: string, error: unknown): Promise<void> {
+    try {
+      const file = this.app.vault.getAbstractFileByPath(filePath);
+      if (!file || !(file instanceof TFile)) return;
+
+      const content = await this.app.vault.read(file as any);
+      const existingFrontmatter = extractFrontmatter(content);
+      const frontmatterObject: Record<string, any> = existingFrontmatter || {};
+
+      // Add error information
+      frontmatterObject.og_error = errorMessage;
+      frontmatterObject.og_error_timestamp = new Date().toISOString();
+      
+      // Add error code if available
+      if (error instanceof OpenGraphServiceError) {
+        frontmatterObject.og_error_code = error.code;
+      }
+
+      // Ensure URL is present
+      if (!frontmatterObject.url) {
+        frontmatterObject.url = url;
+      }
+
+      // Format and update frontmatter
+      const newFrontmatter = formatFrontmatter(frontmatterObject);
+      
+      // Replace or add frontmatter
+      const newContent = content.replace(/---\n(.*?)\n---/s, `---\n${newFrontmatter}\n---`);
+      const finalContent = newContent.startsWith('---') ? newContent : `---\n${newFrontmatter}\n---\n${content}`;
+      
+      await this.app.vault.modify(file as any, finalContent);
+    } catch (writeError) {
+      console.error('Failed to write error to frontmatter:', writeError);
+    }
   }
 }

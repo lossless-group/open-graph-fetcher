@@ -198,11 +198,29 @@
   margin: 20px 8px 16px 8px;
   padding: 12px 16px;
   background: var(--background-secondary);
+  min-height: 20px;
+  display: flex;
+  align-items: center;
   border-radius: 6px;
   text-align: center;
-  border: 1px solid var(--background-modifier-border);
-  font-size: 0.9em;
-  color: var(--text-muted);
+}
+
+/* Typing animation styles */
+.typing-element {
+  color: var(--text-normal);
+  font-size: 0.95em;
+  line-height: 1.4;
+}
+
+.typed-cursor {
+  color: var(--text-accent);
+  font-weight: bold;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 .opengraph-progress {
@@ -211,6 +229,25 @@
   margin: 0 8px 28px 8px;
   border-radius: 3px;
   background: var(--background-modifier-border);
+  transition: all 0.1s ease;
+  overflow: hidden;
+}
+
+/* Custom progress bar styling for smoother appearance */
+.opengraph-progress::-webkit-progress-bar {
+  background: var(--background-modifier-border);
+  border-radius: 3px;
+}
+
+.opengraph-progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--interactive-accent), var(--interactive-accent-hover));
+  border-radius: 3px;
+  transition: width 0.1s ease;
+}
+
+.opengraph-progress::-moz-progress-bar {
+  background: linear-gradient(90deg, var(--interactive-accent), var(--interactive-accent-hover));
+  border-radius: 3px;
 }
 
 .opengraph-button-container {
@@ -253,4 +290,15 @@
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   transform: translateY(-1px);
+}
+
+/* Settings warning styling */
+.setting-item-warning {
+  color: var(--text-warning) !important;
+  font-weight: 600 !important;
+  background-color: var(--background-modifier-error) !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  border: 1px solid var(--text-error) !important;
+  margin-top: 8px !important;
 }
