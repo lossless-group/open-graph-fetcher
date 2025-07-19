@@ -1,1 +1,214 @@
-.batch-opengraph-fetcher-modal{min-width:860px!important;width:90vw!important;max-width:1260px!important;height:90vh!important;max-height:90vh!important;padding:1.5rem!important;box-sizing:border-box}.batch-opengraph-fetcher-modal .modal-content{height:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;gap:1.5rem}.batch-opengraph-fetcher-modal .file-list-container{flex:1;overflow-y:auto;margin:0;padding:.5rem 0}.batch-opengraph-fetcher-table{width:100%;border-collapse:collapse;margin:0}.batch-opengraph-fetcher-table th,.batch-opengraph-fetcher-table td{padding:.75rem 1rem;text-align:left;border-bottom:1px solid var(--background-modifier-border)}.batch-opengraph-fetcher-table th{font-weight:600;color:var(--text-muted);background-color:var(--background-primary);position:sticky;top:0;z-index:1}.batch-opengraph-fetcher-table tr:hover{background-color:var(--background-modifier-hover)}.batch-opengraph-actions{display:flex;gap:.5rem;justify-content:flex-end}.batch-opengraph-actions .mod-cta{margin:0}.batch-opengraph-fetch-btn{background-color:var(--interactive-accent);color:var(--text-on-accent);border:1px solid var(--interactive-accent-hover);padding:.35rem .75rem;border-radius:4px;font-size:.9em;cursor:pointer;transition:all .1s ease}.batch-opengraph-fetch-btn:hover{background-color:var(--interactive-accent-hover)}.batch-opengraph-cancel-btn{background-color:var(--background-secondary);border:1px solid var(--background-modifier-border);padding:.35rem .75rem;border-radius:4px;font-size:.9em;cursor:pointer;transition:all .1s ease;color:var(--text-normal)}.batch-opengraph-cancel-btn:hover{background-color:var(--background-modifier-hover)}.opengraph-fetcher-modal{min-width:500px;max-width:600px;padding:24px}.opengraph-header{margin-bottom:32px;text-align:center}.opengraph-title{color:var(--text-accent);margin:0;font-size:1.25em;font-weight:600}.opengraph-options-container{margin-bottom:28px;padding:0 8px}.opengraph-options-table{width:100%;border-collapse:collapse;margin:0}.opengraph-option-row{border-bottom:1px solid var(--background-modifier-border)}.opengraph-option-row:last-child{border-bottom:none}.opengraph-checkbox-cell{width:40px;padding:12px 8px;text-align:center;vertical-align:middle}.opengraph-label-cell{padding:12px 16px;vertical-align:middle}.opengraph-checkbox{margin:0;transform:scale(1.1)}.opengraph-option-label{cursor:pointer;color:var(--text-normal);font-size:.95em;line-height:1.4;display:block;padding:4px 0}.opengraph-option-label:hover{color:var(--text-accent)}.opengraph-delay-container{margin:28px 8px;padding:16px 20px;background:var(--background-secondary);border-radius:8px;border:1px solid var(--background-modifier-border)}.opengraph-delay-label{display:block;margin-bottom:12px;font-weight:500;color:var(--text-normal);font-size:.95em}.opengraph-delay-slider{width:100%;margin-bottom:12px;height:6px}.opengraph-delay-value{font-weight:600;color:var(--text-accent);font-size:.9em;text-align:center;display:block}.opengraph-status{margin:20px 8px 16px;padding:12px 16px;background:var(--background-secondary);border-radius:6px;text-align:center;border:1px solid var(--background-modifier-border);font-size:.9em;color:var(--text-muted)}.opengraph-progress{width:calc(100% - 16px);height:6px;margin:0 8px 28px;border-radius:3px;background:var(--background-modifier-border)}.opengraph-button-container{display:flex;gap:16px;justify-content:flex-end;padding:0 8px;margin-top:8px}.opengraph-fetch-btn,.opengraph-cancel-btn{padding:10px 20px;border-radius:6px;font-weight:500;font-size:.9em;cursor:pointer;transition:all .2s ease;border:none;min-width:100px}.opengraph-fetch-btn{background:var(--interactive-accent);color:var(--text-on-accent)}.opengraph-cancel-btn{background:transparent;border:1px solid var(--interactive-accent);color:var(--interactive-accent)}.opengraph-fetch-btn:hover{background:var(--interactive-accent-hover);transform:translateY(-1px)}.opengraph-cancel-btn:hover{background:var(--interactive-accent);color:var(--text-on-accent);transform:translateY(-1px)}
+/* src/styles/open-graph-fetcher.css */
+.batch-opengraph-fetcher-modal {
+  min-width: 860px !important;
+  width: 90vw !important;
+  max-width: 1260px !important;
+  height: 90vh !important;
+  max-height: 90vh !important;
+  padding: 1.5rem !important;
+  box-sizing: border-box;
+}
+.batch-opengraph-fetcher-modal .modal-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  box-sizing: border-box;
+  gap: 1.5rem;
+}
+.batch-opengraph-fetcher-modal .file-list-container {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+.batch-opengraph-fetcher-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+.batch-opengraph-fetcher-table th,
+.batch-opengraph-fetcher-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.batch-opengraph-fetcher-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  background-color: var(--background-primary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.batch-opengraph-fetcher-table tr:hover {
+  background-color: var(--background-modifier-hover);
+}
+.batch-opengraph-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.batch-opengraph-actions .mod-cta {
+  margin: 0;
+}
+.batch-opengraph-fetch-btn {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: 1px solid var(--interactive-accent-hover);
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+.batch-opengraph-fetch-btn:hover {
+  background-color: var(--interactive-accent-hover);
+}
+.batch-opengraph-cancel-btn {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  color: var(--text-normal);
+}
+.batch-opengraph-cancel-btn:hover {
+  background-color: var(--background-modifier-hover);
+}
+.opengraph-fetcher-modal {
+  min-width: 500px;
+  max-width: 600px;
+  padding: 24px;
+}
+.opengraph-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+.opengraph-title {
+  color: var(--text-accent);
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 600;
+}
+.opengraph-options-container {
+  margin-bottom: 28px;
+  padding: 0 8px;
+}
+.opengraph-options-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+.opengraph-option-row {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.opengraph-option-row:last-child {
+  border-bottom: none;
+}
+.opengraph-checkbox-cell {
+  width: 40px;
+  padding: 12px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+.opengraph-label-cell {
+  padding: 12px 16px;
+  vertical-align: middle;
+}
+.opengraph-checkbox {
+  margin: 0;
+  transform: scale(1.1);
+}
+.opengraph-option-label {
+  cursor: pointer;
+  color: var(--text-normal);
+  font-size: 0.95em;
+  line-height: 1.4;
+  display: block;
+  padding: 4px 0;
+}
+.opengraph-option-label:hover {
+  color: var(--text-accent);
+}
+.opengraph-delay-container {
+  margin: 28px 8px;
+  padding: 16px 20px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+}
+.opengraph-delay-label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: var(--text-normal);
+  font-size: 0.95em;
+}
+.opengraph-delay-slider {
+  width: 100%;
+  margin-bottom: 12px;
+  height: 6px;
+}
+.opengraph-delay-value {
+  font-weight: 600;
+  color: var(--text-accent);
+  font-size: 0.9em;
+  text-align: center;
+  display: block;
+}
+.opengraph-status {
+  margin: 20px 8px 16px 8px;
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid var(--background-modifier-border);
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+.opengraph-progress {
+  width: calc(100% - 16px);
+  height: 6px;
+  margin: 0 8px 28px 8px;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+}
+.opengraph-button-container {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  padding: 0 8px;
+  margin-top: 8px;
+}
+.opengraph-fetch-btn,
+.opengraph-cancel-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 100px;
+}
+.opengraph-fetch-btn {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.opengraph-cancel-btn {
+  background: transparent;
+  border: 1px solid var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+.opengraph-fetch-btn:hover {
+  background: var(--interactive-accent-hover);
+  transform: translateY(-1px);
+}
+.opengraph-cancel-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  transform: translateY(-1px);
+}
