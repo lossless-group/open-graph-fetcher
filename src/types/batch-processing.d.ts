@@ -3,7 +3,6 @@ export interface BatchOptions {
   createNewProperties: boolean;
   writeErrors: boolean;
   updateFetchDate: boolean;
-  skipExistingData: boolean;
   batchDelay: number;
 }
 

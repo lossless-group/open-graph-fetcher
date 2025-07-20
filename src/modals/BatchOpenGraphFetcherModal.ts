@@ -4,6 +4,7 @@ import { DirectoryScanner, FileInfo } from '../services/directoryScanner';
 import { PluginSettings } from '../types/open-graph-service';
 import { BatchOptions, BatchProgress, ProcessingResult } from '../types/batch-processing';
 import { extractFrontmatter, formatFrontmatter } from '../utils/yamlFrontmatter';
+import Typed from 'typed.js';
 
 // Type helper for DOM elements
 type ObsidianHTMLElement = HTMLElement & {
@@ -43,6 +44,10 @@ export class BatchOpenGraphFetcherModal extends Modal {
   private progressBar: HTMLProgressElement | null = null;
   private processButton: HTMLButtonElement | null = null;
   private cancelButton: HTMLButtonElement | null = null;
+  private animationFrameId: number | null = null;
+  private progressIntervalId: number | null = null;
+  private loadingMessageIntervalId: number | null = null;
+  private typedInstance: Typed | null = null;
 
   constructor(app: App, plugin: OpenGraphPlugin) {
     super(app);
@@ -55,7 +60,6 @@ export class BatchOpenGraphFetcherModal extends Modal {
       createNewProperties: true,
       writeErrors: true,
       updateFetchDate: true,
-      skipExistingData: true,
       batchDelay: 1000
     };
 
@@ -90,6 +94,199 @@ export class BatchOpenGraphFetcherModal extends Modal {
 
   onClose(): void {
     this.progress.isProcessing = false;
+    this.clearEventListeners();
+    // Cancel any ongoing animation
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    // Clear any ongoing progress interval
+    if (this.progressIntervalId) {
+      clearInterval(this.progressIntervalId);
+      this.progressIntervalId = null;
+    }
+    // Clear any ongoing loading message interval
+    this.stopLoadingMessages();
+  }
+
+  /**
+   * Creative loading messages to cycle through while fetching
+   */
+  private readonly loadingMessages: string[] = [
+    "Plucking the ripe OpenGraph data...",
+    "Brewing a fresh cup of metadata...",
+    "Summoning the digital spirits of the web...",
+    "Decoding the ancient hieroglyphs of HTML...",
+    "Teaching robots to read between the lines...",
+    "Mining digital gold from the information superhighway...",
+    "Consulting the oracle of structured data...",
+    "Wrangling wild metadata into submission...",
+    "Casting spells to extract hidden treasures...",
+    "Navigating the labyrinth of web standards...",
+    "Harvesting the fruits of the semantic web...",
+    "Unleashing the power of the OpenGraph protocol..."
+  ];
+
+  /**
+   * Start cycling through loading messages with typing animation
+   */
+  private startLoadingMessages(): void {
+    if (!this.statusEl) return;
+    
+    // Clear any existing typed instance
+    if (this.typedInstance) {
+      this.typedInstance.destroy();
+      this.typedInstance = null;
+    }
+    
+    // Create a span element for the typing animation
+    this.statusEl.empty();
+    const typingElement = this.statusEl.createEl('span', { cls: 'typing-element' });
+    
+    // Initialize typed.js with the loading messages
+    this.typedInstance = new Typed(typingElement, {
+      strings: this.loadingMessages,
+      typeSpeed: 25,
+      backSpeed: 30,
+      backDelay: 1000,
+      loop: true,
+      showCursor: true,
+      cursorChar: '|',
+      autoInsertCss: false,
+      smartBackspace: true,
+      fadeOut: false,
+      fadeOutClass: 'typed-fade-out',
+      fadeOutDelay: 500,
+      onStringTyped: () => {
+        // Optional callback when a string is fully typed
+      },
+      onReset: () => {
+        // Optional callback when typing is reset
+      }
+    });
+  }
+
+  /**
+   * Stop cycling loading messages and clean up typed instance
+   */
+  private stopLoadingMessages(): void {
+    // Clear any ongoing interval
+    if (this.loadingMessageIntervalId) {
+      clearInterval(this.loadingMessageIntervalId);
+      this.loadingMessageIntervalId = null;
+    }
+    
+    // Destroy typed instance
+    if (this.typedInstance) {
+      this.typedInstance.destroy();
+      this.typedInstance = null;
+    }
+  }
+
+  /**
+   * Smoothly animate the progress bar to a target value
+   */
+  private animateProgressTo(targetValue: number, duration: number = 500): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.progressBar) {
+        resolve();
+        return;
+      }
+
+      const startValue = this.progressBar.value;
+      const startTime = performance.now();
+      const valueChange = targetValue - startValue;
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Use ease-out cubic function for smooth animation
+        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+        const currentValue = startValue + (valueChange * easeOutCubic);
+        
+        this.progressBar!.value = currentValue;
+        
+        if (progress < 1) {
+          this.animationFrameId = requestAnimationFrame(animate);
+        } else {
+          this.progressBar!.value = targetValue;
+          this.animationFrameId = null;
+          resolve();
+        }
+      };
+
+      this.animationFrameId = requestAnimationFrame(animate);
+    });
+  }
+
+  /**
+   * Animate progress bar incrementally by 10% every 2 seconds, stopping at 90%
+   */
+  private startIncrementalProgress(): void {
+    if (!this.progressBar) return;
+
+    let currentProgress = 0;
+    const increment = 10;
+    const interval = 2000; // 2 seconds
+
+    const progressInterval = setInterval(() => {
+      if (!this.progress.isProcessing || currentProgress >= 90) {
+        clearInterval(progressInterval);
+        return;
+      }
+
+      currentProgress += increment;
+      if (currentProgress > 90) currentProgress = 90;
+      
+      this.animateProgressTo(currentProgress, 300); // Quick 300ms animation for each increment
+    }, interval);
+
+    // Store the interval ID for cleanup
+    this.progressIntervalId = progressInterval;
+  }
+
+  /**
+   * Complete the progress bar animation to 100%
+   */
+  private completeProgress(): Promise<void> {
+    // Clear any ongoing incremental progress
+    if (this.progressIntervalId) {
+      clearInterval(this.progressIntervalId);
+      this.progressIntervalId = null;
+    }
+    
+    // Animate to 100%
+    return this.animateProgressTo(100, 600);
+  }
+
+  /**
+   * Handle checkbox logic to prevent both overwriteExisting and createNewProperties from being unchecked
+   */
+  private handleCheckboxLogic(changedOption: keyof BatchOptions, newValue: boolean): void {
+    // Only handle the two specific options we care about
+    if (changedOption !== 'overwriteExisting' && changedOption !== 'createNewProperties') {
+      return;
+    }
+
+    // If the checkbox was unchecked and both would now be unchecked
+    if (!newValue && !this.options.overwriteExisting && !this.options.createNewProperties) {
+      // Check the other option to ensure at least one is checked
+      const otherOption = changedOption === 'overwriteExisting' ? 'createNewProperties' : 'overwriteExisting';
+      this.options[otherOption] = true;
+      
+      // Update the UI to reflect the change
+      const otherCheckbox = document.querySelector(`input[type="checkbox"][data-option="${otherOption}"]`) as HTMLInputElement;
+      if (otherCheckbox) {
+        otherCheckbox.checked = true;
+      }
+    }
+  }
+
+  private clearEventListeners(): void {
+    // Clear any event listeners that need cleanup
+    // In this case, we don't have any specific event listeners to clear
+    // This method is required by the parent Modal class
   }
 
   private async createHeader(contentEl: ObsidianHTMLElement): Promise<void> {
@@ -102,44 +299,38 @@ export class BatchOpenGraphFetcherModal extends Modal {
 
   private async createDirectorySection(contentEl: ObsidianHTMLElement): Promise<void> {
     const section = contentEl.createDiv('opengraph-options-container');
-    const optionsTable = section.createEl('table', { cls: 'opengraph-options-table' });
     
-    // Directory row
-    const dirRow = optionsTable.createEl('tr', { cls: 'opengraph-option-row' });
-    dirRow.createEl('td', { text: 'Target Directory:', cls: 'opengraph-label-cell' });
+    this.directoryEl = section.createDiv('opengraph-directory-info');
     
-    const dirCell = dirRow.createEl('td');
-    this.directoryEl = dirCell.createDiv('opengraph-directory-info');
+    const buttonContainer = section.createDiv('opengraph-button-group');
     
-    const refreshButton = dirCell.createEl('button', { 
+    const refreshButton = buttonContainer.createEl('button', { 
       text: 'Refresh Scan',
       cls: 'mod-cta opengraph-fetch-btn'
     });
     refreshButton.onclick = () => this.scanCurrentDirectory();
+    
+    const selectAllBtn = buttonContainer.createEl('button', { 
+      text: 'Select All',
+      cls: 'mod-cta opengraph-fetch-btn'
+    });
+    selectAllBtn.onclick = () => this.selectAllFiles();
+    
+    const deselectAllBtn = buttonContainer.createEl('button', { 
+      text: 'Deselect All',
+      cls: 'mod-cta-outline opengraph-cancel-btn'
+    });
+    deselectAllBtn.onclick = () => this.deselectAllFiles();
   }
 
   private async createFileListSection(contentEl: ObsidianHTMLElement): Promise<void> {
     const section = contentEl.createDiv('opengraph-file-section');
-    
-    // File list header with controls
-    const header = section.createDiv('opengraph-file-header');
-    header.createEl('h3', { text: 'Eligible Files', cls: 'opengraph-subtitle' });
-    
-    const controls = header.createDiv('opengraph-file-controls');
-    const selectAllBtn = controls.createEl('button', { 
-      text: 'Select All',
-      cls: 'mod-cta opengraph-fetch-btn'
-    });
-    const deselectAllBtn = controls.createEl('button', { 
-      text: 'Deselect All',
-      cls: 'mod-cta-outline opengraph-cancel-btn'
-    });
-    
-    selectAllBtn.onclick = () => this.selectAllFiles();
-    deselectAllBtn.onclick = () => this.deselectAllFiles();
+    section.createEl('h3', { text: 'Eligible Files', cls: 'opengraph-subtitle' });
     
     this.fileListEl = section.createDiv('opengraph-file-list');
   }
+
+
 
   private createOptionsSection(contentEl: ObsidianHTMLElement): void {
     const section = contentEl.createDiv('opengraph-options-section');
@@ -159,9 +350,15 @@ export class BatchOpenGraphFetcherModal extends Modal {
         type: 'checkbox',
         cls: 'opengraph-checkbox'
       });
+      checkbox.setAttribute('data-option', key);
       checkbox.checked = Boolean(this.options[key]);
-      checkbox.onchange = () => {
-        (this.options[key] as boolean) = checkbox.checked;
+      checkbox.onchange = (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const newValue = target.checked;
+        (this.options[key] as boolean) = newValue;
+        
+        // Prevent both overwriteExisting and createNewProperties from being unchecked
+        this.handleCheckboxLogic(key, newValue);
       };
       
       container.createEl('label', {
@@ -180,7 +377,6 @@ export class BatchOpenGraphFetcherModal extends Modal {
     createCheckbox('createNewProperties', 'Create New Properties', 'Add OpenGraph fields if missing');
     createCheckbox('writeErrors', 'Write Errors to YAML', 'Include error information in frontmatter');
     createCheckbox('updateFetchDate', 'Update Fetch Date', 'Record when data was fetched');
-    createCheckbox('skipExistingData', 'Skip Files with Data', 'Only process files missing OpenGraph data');
 
     // Batch delay slider
     const delayContainer = section.createDiv('batch-delay-container');
@@ -267,10 +463,20 @@ export class BatchOpenGraphFetcherModal extends Modal {
       return;
     }
 
+    const optionsTable = this.fileListEl.createEl('table', { cls: 'opengraph-options-table' });
+    const optionsGrid = optionsTable.createEl('tbody');
+    
     for (const file of this.eligibleFiles) {
-      const fileItem = this.fileListEl.createDiv('batch-file-item');
+      const row = optionsGrid.createEl('tr', { cls: 'opengraph-option-row' });
+      const checkboxCell = row.createEl('td', { cls: 'opengraph-checkbox-cell' });
+      const labelCell = row.createEl('td', { cls: 'opengraph-label-cell' });
       
-      const checkbox = fileItem.createEl('input', { type: 'checkbox' });
+      const container = labelCell.createDiv('opengraph-option-container');
+      
+      const checkbox = checkboxCell.createEl('input', {
+        type: 'checkbox',
+        cls: 'opengraph-checkbox'
+      });
       checkbox.checked = this.selectedFiles.has(file.path);
       checkbox.onchange = () => {
         if (checkbox.checked) {
@@ -281,28 +487,35 @@ export class BatchOpenGraphFetcherModal extends Modal {
         this.updateProgressDisplay();
       };
       
-      const fileInfo = fileItem.createDiv('batch-file-info');
-      fileInfo.createEl('strong', { text: file.name });
-      fileInfo.createEl('div', { text: file.path, cls: 'batch-file-path' });
-      fileInfo.createEl('div', { text: `URL: ${file.url}`, cls: 'batch-file-url' });
+      // File name
+      container.createEl('div', {
+        text: file.name,
+        cls: 'opengraph-option-label'
+      });
       
+      // File path
+      container.createEl('div', {
+        text: file.path,
+        cls: 'opengraph-option-description'
+      });
+      
+      // URL
+      container.createEl('div', {
+        text: `URL: ${file.url}`,
+        cls: 'opengraph-option-description'
+      });
+      
+      // Missing fields
       if (file.missingFields.length > 0) {
-        fileInfo.createEl('div', { 
+        container.createEl('div', {
           text: `Missing: ${file.missingFields.join(', ')}`,
-          cls: 'batch-missing-fields'
+          cls: 'opengraph-option-description'
         });
-      }
-      
-      const statusIcon = fileItem.createDiv('batch-file-status');
-      if (file.hasOpenGraphData) {
-        statusIcon.setText('✓');
-        statusIcon.addClass('batch-status-complete');
-      } else {
-        statusIcon.setText('⏳');
-        statusIcon.addClass('batch-status-pending');
       }
     }
   }
+
+
 
   private selectAllFiles(): void {
     this.selectedFiles.clear();
@@ -353,6 +566,12 @@ export class BatchOpenGraphFetcherModal extends Modal {
       return;
     }
 
+    // Validate that at least one action can be performed
+    if (!this.options.overwriteExisting && !this.options.createNewProperties) {
+      this.statusEl?.setText('Error: At least one action must be enabled (Overwrite Existing or Create New Properties)');
+      return;
+    }
+
     this.progress.isProcessing = true;
     this.progress.currentFileIndex = 0;
     this.progress.totalFiles = this.selectedFiles.size;
@@ -362,36 +581,56 @@ export class BatchOpenGraphFetcherModal extends Modal {
     this.processButton!.disabled = true;
     this.cancelButton!.disabled = false;
     
-    const selectedFilePaths = Array.from(this.selectedFiles);
-    
-    for (let i = 0; i < selectedFilePaths.length && this.progress.isProcessing; i++) {
-      const filePath = selectedFilePaths[i];
-      const fileInfo = this.eligibleFiles.find(f => f.path === filePath);
-      
-      if (!fileInfo) continue;
-      
-      this.progress.currentFileIndex = i + 1;
-      this.progress.currentFileName = fileInfo.name;
-      this.updateProgressDisplay();
-      
-      const result = await this.processFile(fileInfo);
-      
-      if (result.success) {
-        this.progress.successCount++;
-      } else {
-        this.progress.errorCount++;
-      }
-      
-      // Update file status in UI
-      this.updateFileStatus(filePath, result.success);
-      
-      // Delay between files
-      if (i < selectedFilePaths.length - 1 && this.progress.isProcessing) {
-        await new Promise(resolve => setTimeout(resolve, this.options.batchDelay));
-      }
+    // Reset progress bar to 0
+    if (this.progressBar) {
+      this.progressBar.value = 0;
     }
     
-    this.finishProcessing();
+    // Start cycling loading messages
+    this.startLoadingMessages();
+    
+    // Start incremental progress (10% every 2 seconds, stops at 90%)
+    this.startIncrementalProgress();
+    
+    const selectedFilePaths = Array.from(this.selectedFiles);
+    
+    try {
+      for (let i = 0; i < selectedFilePaths.length && this.progress.isProcessing; i++) {
+        const filePath = selectedFilePaths[i];
+        const fileInfo = this.eligibleFiles.find(f => f.path === filePath);
+        
+        if (!fileInfo) continue;
+        
+        this.progress.currentFileIndex = i + 1;
+        this.progress.currentFileName = fileInfo.name;
+        this.updateProgressDisplay();
+        
+        const result = await this.processFile(fileInfo);
+        
+        if (result.success) {
+          this.progress.successCount++;
+        } else {
+          this.progress.errorCount++;
+        }
+        
+        // Delay between files
+        if (i < selectedFilePaths.length - 1 && this.progress.isProcessing) {
+          await new Promise(resolve => setTimeout(resolve, this.options.batchDelay));
+        }
+      }
+      
+      // Stop loading messages before completing
+      this.stopLoadingMessages();
+      
+      // Complete the progress to 100%
+      await this.completeProgress();
+      
+      this.finishProcessing();
+    } catch (error) {
+      // Stop loading messages on error
+      this.stopLoadingMessages();
+      this.finishProcessing();
+    }
   }
 
   private async processFile(fileInfo: FileInfo): Promise<ProcessingResult> {
@@ -421,7 +660,7 @@ export class BatchOpenGraphFetcherModal extends Modal {
     }
   }
 
-  private async updateFileMetadata(filePath: string, _url: string, data: any): Promise<void> {
+  private async updateFileMetadata(filePath: string, url: string, data: any): Promise<void> {
     const file = this.app.vault.getAbstractFileByPath(filePath);
     if (!file || !(file instanceof TFile)) return; // Ensure it's a file, not a folder
     
@@ -433,40 +672,52 @@ export class BatchOpenGraphFetcherModal extends Modal {
     // Save the original tags if they exist
     const originalTags = frontmatter.tags;
     
-    // Update frontmatter with OpenGraph data using configurable field names
-    if (data.title && (this.options.overwriteExisting || !frontmatter[this.settings.titleFieldName])) {
-      frontmatter[this.settings.titleFieldName] = data.title;
+    // Update with new OpenGraph data using configurable field names
+    if (this.options.createNewProperties || !frontmatter.url) {
+      frontmatter.url = url;
     }
-    
-    if (data.description && (this.options.overwriteExisting || !frontmatter[this.settings.descriptionFieldName])) {
-      frontmatter[this.settings.descriptionFieldName] = data.description;
+
+    // Handle title field - only add if createNewProperties is enabled, or overwrite if enabled
+    if ((this.options.createNewProperties && !frontmatter[this.settings.titleFieldName]) || 
+        (this.options.overwriteExisting && frontmatter[this.settings.titleFieldName])) {
+      frontmatter[this.settings.titleFieldName] = data.title || '';
     }
-    
-    if (data.image && (this.options.overwriteExisting || !frontmatter[this.settings.imageFieldName])) {
-      frontmatter[this.settings.imageFieldName] = data.image;
+
+    // Handle description field - only add if createNewProperties is enabled, or overwrite if enabled
+    if ((this.options.createNewProperties && !frontmatter[this.settings.descriptionFieldName]) || 
+        (this.options.overwriteExisting && frontmatter[this.settings.descriptionFieldName])) {
+      frontmatter[this.settings.descriptionFieldName] = data.description || '';
     }
-    
-    // Add favicon to frontmatter if available
-    if (data.favicon && (this.options.overwriteExisting || !frontmatter[this.settings.faviconFieldName])) {
+
+    // Handle image field - only add if createNewProperties is enabled, or overwrite if enabled
+    if ((this.options.createNewProperties && !frontmatter[this.settings.imageFieldName]) || 
+        (this.options.overwriteExisting && frontmatter[this.settings.imageFieldName])) {
+      frontmatter[this.settings.imageFieldName] = data.image || null;
+    }
+
+    // Handle favicon field - only add if createNewProperties is enabled, or overwrite if enabled
+    if (data.favicon && ((this.options.createNewProperties && !frontmatter[this.settings.faviconFieldName]) || 
+        (this.options.overwriteExisting && frontmatter[this.settings.faviconFieldName]))) {
       frontmatter[this.settings.faviconFieldName] = data.favicon;
     }
-    
+
+    // Handle fetch date - always update if enabled
     if (this.options.updateFetchDate) {
       frontmatter[this.settings.fetchDateFieldName] = new Date().toISOString();
     }
-    
+
     // Clear any previous errors if this is a successful operation
     if (frontmatter.og_error) {
       delete frontmatter.og_error;
       delete frontmatter.og_error_timestamp;
       delete frontmatter.og_error_code;
     }
-    
+
     // Restore the original tags if they existed
     if (originalTags !== undefined) {
       frontmatter.tags = originalTags;
     }
-    
+
     // Get the original content to preserve formatting
     const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
     const match = content.match(frontmatterRegex);
@@ -483,25 +734,7 @@ export class BatchOpenGraphFetcherModal extends Modal {
     }
   }
 
-  private updateFileStatus(filePath: string | undefined, success: boolean): void {
-    if (!filePath) return;
-    
-    // Find and update the file status icon in the UI
-    const fileItems = this.fileListEl?.querySelectorAll('.batch-file-item');
-    if (!fileItems) return;
-    
-    // Convert NodeList to Array for iteration
-    Array.from(fileItems).forEach((item: Element) => {
-      const pathEl = item.querySelector('.batch-file-path');
-      if (pathEl?.textContent === filePath) {
-        const statusEl = item.querySelector('.batch-file-status');
-        if (statusEl) {
-          statusEl.textContent = success ? '✓' : '⚠';
-          statusEl.className = `batch-file-status ${success ? 'batch-status-complete' : 'batch-status-error'}`;
-        }
-      }
-    });
-  }
+
 
   private cancelProcessing(): void {
     this.progress.isProcessing = false;
@@ -511,11 +744,19 @@ export class BatchOpenGraphFetcherModal extends Modal {
   private finishProcessing(): void {
     this.progress.isProcessing = false;
     this.processButton!.disabled = false;
-    this.cancelButton!.disabled = true;
+    
+    // Change Cancel button to Done with CTA styling after successful completion
+    if (this.cancelButton) {
+      this.cancelButton.textContent = 'Done';
+      this.cancelButton.removeClass('mod-cta-outline');
+      this.cancelButton.addClass('mod-cta');
+      this.cancelButton.disabled = false;
+      // Change the onclick handler to close the modal
+      this.cancelButton.onclick = () => this.close();
+    }
     
     this.statusEl?.setText(
-      `Processing complete - Success: ${this.progress.successCount}, ` +
-      `Errors: ${this.progress.errorCount}`
+      `Batch processing complete! Successfully processed ${this.progress.successCount} files${this.progress.errorCount > 0 ? `, ${this.progress.errorCount} errors` : ''}`
     );
     
     this.updateProgressDisplay();
