@@ -409,14 +409,21 @@ export class BatchOpenGraphFetcherModal extends Modal {
 
   private createButtonSection(contentEl: ObsidianHTMLElement): void {
     const section = contentEl.createDiv('opengraph-button-container');
+    section.style.display = 'flex';
+    section.style.justifyContent = 'space-between';
+    section.style.marginTop = '1em';
     
-    this.processButton = section.createEl('button', {
+    const buttonWrapper = section.createDiv('opengraph-button-wrapper');
+    buttonWrapper.style.display = 'flex';
+    buttonWrapper.style.gap = '8px';
+    
+    this.processButton = buttonWrapper.createEl('button', {
       text: 'Start Processing',
       cls: 'mod-cta opengraph-fetch-btn'
     });
     this.processButton.onclick = () => this.startBatchProcessing();
     
-    this.cancelButton = section.createEl('button', {
+    this.cancelButton = buttonWrapper.createEl('button', {
       text: 'Cancel',
       cls: 'mod-cta-outline opengraph-cancel-btn'
     });

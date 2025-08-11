@@ -1,4 +1,4 @@
-![Open Graph Fetcher Obsidian Plugin Banner Image](https://i.imgur.com/0v6sPkv.png)
+![Open Graph Fetcher: An Obsidian Community Plugin by The Lossless Group](https://i.imgur.com/0v6sPkv.png)
 
 # Open Graph Fetcher Obsidian Plugin
 

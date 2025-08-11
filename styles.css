@@ -113,6 +113,17 @@
 .opengraph-fetcher-modal .opengraph-button-group button {
   margin: 0;
 }
+.batch-opengraph-fetcher-modal .opengraph-button-group {
+  display: flex;
+  align-items: center;
+}
+.batch-opengraph-fetcher-modal .opengraph-button-group button {
+  margin-right: 12px;
+}
+.batch-opengraph-fetcher-modal .opengraph-button-group button:last-child {
+  margin-right: 0;
+}
+}
 .batch-opengraph-fetcher-modal .opengraph-file-section {
   margin-bottom: 28px;
   padding: 0 8px;
